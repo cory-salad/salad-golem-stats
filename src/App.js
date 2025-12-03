@@ -2,8 +2,20 @@
 import React, { useState } from 'react';
 import Globe from 'react-globe.gl';
 import * as THREE from 'three';
-import { Container, Typography, Box, Grid, Paper } from '@mui/material';
+import { Container, Typography, Box, Paper, Grid, ThemeProvider, createTheme } from '@mui/material';
 import { Chart } from 'chart.js/auto';
+
+const theme = createTheme({
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 800,
+      lg: 1200,
+      xl: 1536,
+    },
+  },
+});
 
 function generateRandomData(numPoints = 100) {
   // Generate 100 random points for a trend graph
@@ -50,6 +62,17 @@ function generateStackedData(numPoints = 100, numSeries = 5) {
 }
 
 function App() {
+    // Set globe background color after mount
+    React.useEffect(() => {
+      if (globeRef.current && globeRef.current.scene) {
+        const scene = globeRef.current.scene();
+        if (scene && scene.background) {
+          scene.background.set('#f0f2f5');
+        } else if (scene) {
+          scene.background = new THREE.Color('#f0f2f5');
+        }
+      }
+    }, []);
   const [trend1Current, setTrend1Current] = useState(null);
   const [stackedCurrents, setStackedCurrents] = useState([]);
   const [trendWindows, setTrendWindows] = useState({
@@ -175,12 +198,11 @@ function App() {
   }, [trendWindows]);
 
   return (
-    <Box sx={{ bgcolor: '#f0f2f5', minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="lg" sx={{ bgcolor: 'transparent', px: { xs: 1, sm: 2, md: 4 } }}>
-        {/* Top-level Page Paper */}
-        <Paper elevation={6} sx={{ p: 4, borderRadius: 6, bgcolor: '#e3e6ee' }}>
-          {/* First Level Section */}
-          <Paper elevation={4} sx={{ bgcolor: '#1976d2', color: 'white', py: 3, mb: 4, borderRadius: 4, textAlign: 'center' }}>
+    <ThemeProvider theme={theme}>
+      <Box sx={{ bgcolor: '#f0f2f5', minHeight: '100vh', py: 4, overflowX: 'auto' }}>
+      <Container maxWidth="xl" sx={{ bgcolor: 'transparent', px: { xs: 1, sm: 2, md: 6 } }}>
+        {/* First Level Section */}
+        <Paper elevation={4} sx={{ bgcolor: '#1976d2', color: 'white', py: 3, mb: 4, borderRadius: 4, textAlign: 'center', maxWidth: '98vw', mx: 'auto', px: 6 }}>
             <Typography variant="h2" component="h1">
               Stats Salad Dashboard
             </Typography>
@@ -191,18 +213,17 @@ function App() {
             </Box>
           </Paper>
           {/* Second Level Section: Provider Stats */}
-          <Paper elevation={2} sx={{ mb: 4, borderRadius: 4, p: 4, bgcolor: '#f5f5f5' }}>
+          <Paper elevation={2} sx={{ mb: 4, borderRadius: 4, p: 5, bgcolor: '#f5f5f5', maxWidth: '96vw', mx: 'auto' }}>
             <Typography variant="h4" component="h2" sx={{ textAlign: 'center', mb: 3 }}>
               Provider stats
             </Typography>
-            <Grid container spacing={4}>
+            <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <Paper elevation={3} sx={{ p: 2, height: 320, maxHeight: 320, borderRadius: 4 }}>
-                  <Box display="flex" alignItems="center" justifyContent="center">
-                    <Box flex={1}>
-                      <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'center' }}>
-                        Trend Chart 1
-                      </Typography>
+                <Box display="flex" alignItems="center" justifyContent="center" sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+                  <Box flex={1}>
+                    <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'center' }}>
+                      Trend Chart 1
+                    </Typography>
                       {/* Time window selection */}
                       <Box sx={{ textAlign: 'center', mb: 1 }}>
                         {['month', 'week', 'day'].map(win => (
@@ -226,11 +247,9 @@ function App() {
                       </Typography>
                     </Box>
                   </Box>
-                </Paper>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Paper elevation={3} sx={{ p: 2, height: 320, maxHeight: 320, borderRadius: 4 }}>
-                  <Box sx={{ height: 350, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <Box sx={{ height: 350, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 2 }}>
                     <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'center' }}>
                       Interactive Globe
                     </Typography>
@@ -242,23 +261,21 @@ function App() {
                       bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
                     />
                   </Box>
-                </Paper>
               </Grid>
             </Grid>
           </Paper>
           {/* Second Level Section: Additional Provider Metrics */}
-          <Paper elevation={2} sx={{ mb: 4, borderRadius: 4, p: 4, bgcolor: '#f5f5f5' }}>
+          <Paper elevation={2} sx={{ mb: 4, borderRadius: 4, p: 3, bgcolor: '#f5f5f5', maxWidth: '96vw', mx: 'auto' }}>
             <Typography variant="h5" component="h4" sx={{ textAlign: 'center', mb: 3 }}>
               Additional Provider Metrics
             </Typography>
-            <Grid container spacing={4}>
+            <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <Paper elevation={3} sx={{ p: 2, height: 320, maxHeight: 320, borderRadius: 4 }}>
-                  <Box display="flex" alignItems="center" justifyContent="center">
-                    <Box flex={1}>
-                      <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'center' }}>
-                        Trend Chart 3 (Stacked)
-                      </Typography>
+                <Box display="flex" alignItems="center" justifyContent="center" sx={{ p: 2 }}>
+                  <Box flex={1}>
+                    <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'center' }}>
+                      Trend Chart 3 (Stacked)
+                    </Typography>
                       {/* Time window selection */}
                       <Box sx={{ textAlign: 'center', mb: 1 }}>
                         {['month', 'week', 'day'].map(win => (
@@ -286,12 +303,10 @@ function App() {
                       ) : '--'}
                     </Box>
                   </Box>
-                </Paper>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Paper elevation={3} sx={{ p: 2, height: 320, maxHeight: 320, borderRadius: 4 }}>
-                  <Box>
-                    <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'center' }}>
+                <Box sx={{ width: '80%', mx: 'auto', p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'center' }}>
                       Bar Chart 4
                     </Typography>
                     {/* Time window selection */}
@@ -306,17 +321,16 @@ function App() {
                         </button>
                       ))}
                     </Box>
-                    <Box sx={{ mt: 2 }}>
-                      <canvas id="trendChart4" width="400" height="250"></canvas>
+                    <Box sx={{ mt: 2, width: '100%' }}>
+                      <canvas id="trendChart4" width="400" height="250" style={{ width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}></canvas>
                     </Box>
-                  </Box>
-                </Paper>
+                </Box>
               </Grid>
             </Grid>
           </Paper>
-        </Paper>
       </Container>
     </Box>
+    </ThemeProvider>
   );
   // (removed duplicate state and hooks)
 }

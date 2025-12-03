@@ -10,6 +10,8 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-globe.gl": "^2.37.0",
+    "react-grid-layout": "^1.5.2",
+    "react-resizable": "^3.0.5",
     "three": "^0.181.2"
   },
   "scripts": {
