@@ -5,6 +5,7 @@
   "dependencies": {
     "@emotion/react": "^11.0.0",
     "@emotion/styled": "^11.0.0",
+    "@mui/icons-material": "^5.18.0",
     "@mui/material": "^5.0.0",
     "chart.js": "^4.0.0",
     "react": "^18.0.0",
@@ -12,7 +13,8 @@
     "react-globe.gl": "^2.37.0",
     "react-grid-layout": "^1.5.2",
     "react-resizable": "^3.0.5",
-    "three": "^0.181.2"
+    "three": "^0.181.2",
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -20,9 +22,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "devDependencies": {
-    "react-scripts": "^5.0.1"
-  },
+  "devDependencies": {},
   "browserslist": [
     ">0.2%",
     "not dead",

@@ -90,7 +90,7 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, currentValu
         <Box sx={{ width: { xs: '100%', sm: 600 }, minWidth: 300 }} className="w-inline-block">
           <canvas id={id} width="100%" height={plotHeight} style={{ width: '100%', maxWidth: 600, minWidth: 300, height: plotHeight, display: 'block' }}></canvas>
         </Box>
-        <Box sx={{ ml: { sm: 1, xs: 0 }, mt: { xs: 1, sm: 0 }, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: unitType === 'below' ? 'center' : 'flex-start' }} className="w-inline-block">
+        <Box sx={{ ml: { sm: 1.5, xs: 0.5 }, mt: { xs: 1, sm: 0 }, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: unitType === 'below' ? 'center' : 'flex-start' }} className="w-inline-block">
           {valueDisplay}
         </Box>
       </Box>
@@ -196,7 +196,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
         </Box>
         {/* Legend/value display: right or below chart depending on width */}
         {!isNarrow && (
-          <Box sx={{ ml: 2, mt: 0, minWidth: 0, flex: 1 }} className="w-inline-block">
+          <Box sx={{ ml: 1.5, mt: 0, minWidth: 0, flex: 1 }} className="w-inline-block">
             {currents.length > 0 ? (
               currents.map((val, idx) => (
                 <Box key={idx} display="flex" alignItems="center" justifyContent="flex-start" sx={{ mb: 1 }} className="w-inline-block">

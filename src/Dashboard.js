@@ -171,9 +171,9 @@ export default function Dashboard() {
         },
       }} />
       {/* Top nav bar with logo */}
-      <Box sx={{ height: 64, bgcolor: theme.palette.salad.navy, display: 'flex', alignItems: 'center', px: 3 }} className="w-block">
+      <Box sx={{ height: 64, bgcolor: theme.palette.salad.navy, display: 'flex', alignItems: 'center', px: 3, borderBottom: '4px solid theme.palette.salad.navy' }} className="w-block">
         <a href="https://portal.salad.com" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-          <img src="/salad-logo-light-4x-DpLeJfaD.png" alt="Salad Logo" style={{ height: 48, width: 'auto', display: 'block' }} />
+          <img src="/salad-logo-light-4x-DpLeJfaD.png" alt="Salad Logo" style={{ height: 46.15, width: 'auto', display: 'block' }} />
         </a>
       </Box>
       <Box sx={{ bgcolor: theme.palette.background.default, minHeight: '100vh', py: 4, overflowX: 'auto' }}>
