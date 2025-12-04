@@ -1,12 +1,26 @@
+// charts.js - Reusable chart components for Stats Salad dashboard
+// Uses Material-UI, Chart.js, and custom data generators
+
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Chart } from 'chart.js/auto';
 import { generateRandomData, generateStackedData } from './data';
 
-  
+// Default plot height for all charts
 const plotHeight = 300;
 
-
+/**
+ * TrendChart - Line chart for single series trends
+ * Props:
+ *   id: string - unique canvas id
+ *   title: string - chart title
+ *   trendWindow: string - time window ('month', 'week', 'day')
+ *   setTrendWindow: function - updates time window
+ *   currentValue: number|null - current value to display
+ *   setCurrentValue: function - updates current value
+ *   unit: string (optional) - unit to display
+ *   unitType: 'front'|'below' (optional) - unit display style
+ */
 export function TrendChart({ id, title, trendWindow, setTrendWindow, currentValue, setCurrentValue, unit, unitType }) {
   React.useEffect(() => {
     const ctx = document.getElementById(id);
@@ -74,6 +88,7 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, currentValu
           {valueDisplay}
         </Box>
       </Box>
+      {/* Time window selector buttons */}
       <Box sx={{ textAlign: 'center', mt: 1 }}>
         {globalThis.trendWindows?.map?.(win => (
           <button
@@ -97,12 +112,21 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, currentValu
   );
 }
 
-
+/**
+ * StackedChart - Multi-series stacked line chart
+ * Props:
+ *   id: string - unique canvas id
+ *   title: string - chart title
+ *   trendWindow: string - time window
+ *   setTrendWindow: function - updates time window
+ *   labels: array - series labels
+ */
 export function StackedChart({ id, title, trendWindow, setTrendWindow, labels }) {
   const [chartData, setChartData] = React.useState(null);
   const [currents, setCurrents] = React.useState([]);
   const [isNarrow, setIsNarrow] = React.useState(typeof window !== 'undefined' ? window.innerWidth < 1400 : false);
 
+  // Responsive legend position
   React.useEffect(() => {
     function handleResize() {
       setIsNarrow(window.innerWidth < 1400);
@@ -111,6 +135,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Generate stacked data when window or labels change
   React.useEffect(() => {
     let numPoints = trendWindow === 'month' ? 100 : trendWindow === 'week' ? 30 : 7;
     const stackedData = generateStackedData(numPoints, labels.length);
@@ -119,6 +144,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
     setCurrents(stackedData.datasets.map(ds => ds.data[ds.data.length - 1]));
   }, [trendWindow, labels]);
 
+  // Render chart when data changes
   React.useEffect(() => {
     const ctx = document.getElementById(id);
     if (ctx && chartData) {
@@ -137,6 +163,15 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
     return () => { if (ctx && ctx._chartInstance) ctx._chartInstance.destroy(); };
   }, [id, chartData, title]);
 
+  // Color palette for legend swatches
+  const legendColors = [
+    'rgba(255, 99, 132, 1)',
+    'rgba(54, 162, 235, 1)',
+    'rgba(255, 206, 86, 1)',
+    'rgba(75, 192, 192, 1)',
+    'rgba(153, 102, 255, 1)'
+  ];
+
   return (
     <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" sx={{ width: '100%' }}>
       <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'center' }}>{title}</Typography>
@@ -148,18 +183,13 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
         <Box sx={{ width: { xs: '100%', sm: 500 }, minWidth: 300 }}>
           <canvas id={id} width="100%" height={plotHeight} style={{ width: '100%', maxWidth: 500, minWidth: 300, height: plotHeight, display: 'block' }}></canvas>
         </Box>
+        {/* Legend/value display: right or below chart depending on width */}
         {!isNarrow && (
           <Box sx={{ ml: 2, mt: 0, minWidth: 0, flex: 1 }}>
             {currents.length > 0 ? (
               currents.map((val, idx) => (
                 <Box key={idx} display="flex" alignItems="center" justifyContent="flex-start" sx={{ mb: 1 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: [
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)'
-                  ][idx % 5], display: 'inline-block', mr: 1, border: '1px solid #bbb' }} />
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: legendColors[idx % legendColors.length], display: 'inline-block', mr: 1, border: '1px solid #bbb' }} />
                   <Typography variant="body2" component="span" sx={{ color: 'text.primary', fontSize: '0.875rem', mr: 1 }}>
                     {labels[idx]}: {val}
                   </Typography>
@@ -173,13 +203,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
             {currents.length > 0 ? (
               currents.map((val, idx) => (
                 <Box key={idx} display="flex" alignItems="center" justifyContent="center" sx={{ mb: 1, mx: 2 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: [
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)'
-                  ][idx % 5], display: 'inline-block', mr: 1, border: '1px solid #bbb' }} />
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: legendColors[idx % legendColors.length], display: 'inline-block', mr: 1, border: '1px solid #bbb' }} />
                   <Typography variant="body2" component="span" sx={{ color: 'text.primary', fontSize: '0.875rem', mr: 1 }}>
                     {labels[idx]}: {val}
                   </Typography>
@@ -189,6 +213,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
           </Box>
         )}
       </Box>
+      {/* Time window selector buttons */}
       <Box sx={{ textAlign: 'center', mt: 1 }}>
         {['month', 'week', 'day'].map(win => (
           <button
