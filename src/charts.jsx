@@ -36,8 +36,8 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, currentValu
           datasets: [{
             label: title,
             data: trendData.map(d => d.y),
-            backgroundColor: 'rgba(31, 79, 34, 0.15)', // dark green, semi-transparent
-            borderColor: 'rgb(31, 79, 34)', // dark green
+            backgroundColor: 'rgba(83,166,38,0.15)', //  green, semi-transparent
+            borderColor: 'rgb(83,166,38)', //  green
             borderWidth: 2,
             fill: true,
             pointRadius: 0,
@@ -83,9 +83,43 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, currentValu
     }
   }
 
+  // Time window options and mapping
+  const timeOptions = [
+    { key: 'day', label: '1d' },
+    { key: 'week', label: '7d' },
+    { key: 'month', label: '1m' }
+  ];
+
   return (
     <Box display="flex" flexDirection="column" alignItems="stretch" justifyContent="center" sx={{ width: '100%' }} className="w-block">
-      <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'left', color: 'rgb(83,166,38)' }} className="w-block">{title}</Typography>
+      <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+        <Typography variant="h6" component="h3" sx={{ textAlign: 'left', color: 'rgb(83,166,38)', flex: '0 0 70%' }} className="w-block">{title}</Typography>
+        <Box display="flex" alignItems="center" sx={{ gap: 1, flex: '0 0 auto', ml: 2 }}>
+          {timeOptions.map(opt => (
+            <button
+              key={opt.key}
+              className="w-button"
+              style={{
+                margin: 0,
+                padding: '2px 10px',
+                fontWeight: 400,
+                fontSize: '0.95rem',
+                background: trendWindow === opt.key ? '#f5f5f5' : '#fff',
+                color: '#aaa',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                boxShadow: 'none',
+                transition: 'background 0.2s',
+                minWidth: 36
+              }}
+              onClick={() => setTrendWindow(opt.key)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </Box>
+      </Box>
       <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems="center" justifyContent="flex-start" sx={{ width: '100%', maxWidth: 700, mb: 1 }} className="w-clearfix">
         <Box sx={{ width: { xs: '100%', sm: 600 }, minWidth: 300 }} className="w-inline-block">
           <canvas id={id} width="100%" height={plotHeight} style={{ width: '100%', maxWidth: 600, minWidth: 300, height: plotHeight, display: 'block' }}></canvas>
@@ -93,28 +127,6 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, currentValu
         <Box sx={{ ml: { sm: 1.5, xs: 0.5 }, mt: { xs: 1, sm: 0 }, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: unitType === 'below' ? 'center' : 'flex-start' }} className="w-inline-block">
           {valueDisplay}
         </Box>
-      </Box>
-      {/* Time window selector buttons */}
-      <Box sx={{ textAlign: 'center', mt: 1 }}>
-        {globalThis.trendWindows?.map?.(win => (
-          <button
-            key={win}
-            className={"w-button" + (trendWindow === win ? " w-block" : "")}
-            style={{ margin: '0 4px', padding: '4px 12px', background: trendWindow === win ? '#1976d2' : '#eee', color: trendWindow === win ? 'white' : 'black', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            onClick={() => setTrendWindow(win)}
-          >
-            Last {win}
-          </button>
-        )) ?? ['month', 'week', 'day'].map(win => (
-          <button
-            key={win}
-            className={"w-button" + (trendWindow === win ? " w-block" : "")}
-            style={{ margin: '0 4px', padding: '4px 12px', background: trendWindow === win ? '#1976d2' : '#eee', color: trendWindow === win ? 'white' : 'black', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            onClick={() => setTrendWindow(win)}
-          >
-            Last {win}
-          </button>
-        ))}
       </Box>
     </Box>
   );
@@ -183,7 +195,34 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
 
   return (
     <Box display="flex" flexDirection="column" alignItems="stretch" justifyContent="center" sx={{ width: '100%' }} className="w-block">
-      <Typography variant="h6" component="h3" sx={{ mb: 1, textAlign: 'left', color: 'rgb(83,166,38)' }} className="w-block">{title}</Typography>
+      <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+        <Typography variant="h6" component="h3" sx={{ textAlign: 'left', color: 'rgb(83,166,38)', flex: '0 0 60%' }} className="w-block">{title}</Typography>
+        <Box display="flex" alignItems="center" sx={{ gap: 1, flex: '0 0 auto', ml: 2 }}>
+          {[{ key: 'day', label: '1d' }, { key: 'week', label: '7d' }, { key: 'month', label: '1m' }].map(opt => (
+            <button
+              key={opt.key}
+              className="w-button"
+              style={{
+                margin: 0,
+                padding: '2px 10px',
+                fontWeight: 400,
+                fontSize: '0.95rem',
+                background: trendWindow === opt.key ? '#f5f5f5' : '#fff',
+                color: '#aaa',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                boxShadow: 'none',
+                transition: 'background 0.2s',
+                minWidth: 36
+              }}
+              onClick={() => setTrendWindow(opt.key)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </Box>
+      </Box>
       <Box display="flex"
         flexDirection={isNarrow ? 'column' : 'row'}
         alignItems="center"
@@ -223,19 +262,6 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
             ) : '--'}
           </Box>
         )}
-      </Box>
-      {/* Time window selector buttons */}
-      <Box sx={{ textAlign: 'center', mt: 1 }}>
-        {['month', 'week', 'day'].map(win => (
-          <button
-            key={win}
-            className={"w-button" + (trendWindow === win ? " w-block" : "")}
-            style={{ margin: '0 4px', padding: '4px 12px', background: trendWindow === win ? '#1976d2' : '#eee', color: trendWindow === win ? 'white' : 'black', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            onClick={() => setTrendWindow(win)}
-          >
-            Last {win}
-          </button>
-        ))}
       </Box>
     </Box>
   );

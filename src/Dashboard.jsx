@@ -6,7 +6,22 @@ import React, { useState, useRef, useEffect } from 'react';
 import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import { Container, Typography, Box, Paper, Grid, ThemeProvider, createTheme, Tabs, Tab, CssBaseline, GlobalStyles } from '@mui/material';
-import { TrendChart, StackedChart } from './charts';
+import { TrendChart, StackedChart } from './charts.jsx';
+
+// Simple CSV parser for node_count_by_city.csv
+function parseCityCSV(text) {
+	const lines = text.trim().split(/\r?\n/);
+	const header = lines[0].split(',');
+	return lines.slice(1).map(line => {
+		const cols = line.split(',');
+		return {
+			city: cols[0],
+			count: Number(cols[1]),
+			lat: cols[2] ? Number(cols[2]) : undefined,
+			lon: cols[3] ? Number(cols[3]) : undefined
+		};
+	}).filter(row => row.lat && row.lon && row.count > 0);
+}
 
 // Custom color palette
 const saladPalette = {
@@ -66,6 +81,19 @@ const theme = createTheme({
 });
 
 export default function Dashboard() {
+	// State for city node data
+	const [cityData, setCityData] = useState([]);
+
+	// Load city node count CSV on mount
+	useEffect(() => {
+		fetch('./data/node_count_by_city.csv')
+			.then(res => res.text())
+			.then(text => {
+				const parsed = parseCityCSV(text);
+				console.log('Loaded cityData:', parsed);
+				setCityData(parsed);
+			});
+	}, []);
 	// State for current values in charts
 	const [computeCurrent, setComputeCurrent] = useState(null);
 	const [feesCurrent, setFeesCurrent] = useState(null);
@@ -181,7 +209,7 @@ export default function Dashboard() {
 				<Container maxWidth="xl" sx={{ bgcolor: 'transparent', px: { xs: 1, sm: 2, md: 6 } }}>
 					{/* Dashboard Title and Intro */}
 					<Box sx={{ mb: 4, mt: 2 }} className="w-block">
-						<Typography variant="h2" component="h1" sx={{ color: theme.palette.text.primary, textAlign: 'left', fontWeight: 700 }} className="w-block">Salad Network Statistics</Typography>
+						<Typography variant="h2" component="h1" sx={{ color: theme.palette.text.primary, textAlign: 'left', fontWeight: 700 }} className="w-block">SaladCloud Network Statistics</Typography>
 					</Box>
 					<Box sx={{ mt: 2 }} className="w-block">
 						<Typography variant="body1" sx={{ textAlign: 'left', color: theme.palette.text.primary }} className="w-block">
@@ -222,12 +250,19 @@ export default function Dashboard() {
 							<Typography variant="h5" sx={{ mt: 2, mb: 1, color: theme.palette.primary.main, fontSize: '1.25rem' }} className="w-block">Distribution - Utilized</Typography>
 							<Box sx={{ width: '90%', borderBottom: '2px solid rgb(219,243,193)', mb: 1 }} className="w-clearfix" />
 							<Box sx={{ width: '100%', height: 500, bgcolor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 4 }} style={{ background: '#fff' }} className="w-block">
+								{/* Minimal Globe.gl bars example: one bar at equator */}
 								<Globe
-									ref={globeNetworkRef}
 									width={800}
 									height={480}
-									globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-									bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+									globeImageUrl="/earth-light.jpg"
+									backgroundColor="#fff"
+									hexBinPointsData={cityData}
+									hexBinPointLat={d => d.lat}
+									hexBinPointLng={d => d.lon}
+									hexBinResolution={4}
+									hexAltitude={d => Math.min(0.15, d.sumWeight * 0.01)}
+									hexTopColor={() => saladPalette.green}
+									hexSideColor={() => saladPalette.darkGreen}
 								/>
 							</Box>
 							{/* Usage Section */}
@@ -270,9 +305,7 @@ export default function Dashboard() {
 									<TrendChart id="marketCapChart" title="Market Capitalization" trendWindow={trendWindows.marketCap} setTrendWindow={win => setTrendWindows(w => ({ ...w, marketCap: win }))} currentValue={marketCapCurrent} setCurrentValue={setMarketCapCurrent} unit="$" unitType="front" />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<Box sx={{ width: { xs: '100%', sm: 600 }, minWidth: 300 }}>
 										<TrendChart id="volumeChart" title="Volume" trendWindow={trendWindows.volume} setTrendWindow={win => setTrendWindows(w => ({ ...w, volume: win }))} currentValue={volumeCurrent} setCurrentValue={setVolumeCurrent} />
-									</Box>
 								</Grid>
 								<Grid item xs={12} md={6}></Grid>
 							</Grid>
