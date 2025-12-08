@@ -84,16 +84,35 @@ export default function Dashboard() {
 	// State for city node data
 	const [cityData, setCityData] = useState([]);
 
-	// Load city node count CSV on mount
+	// Load city node count data from API endpoint on mount
 	useEffect(() => {
-		fetch('./data/node_count_by_city.csv')
-			.then(res => res.text())
-			.then(text => {
-				const parsed = parseCityCSV(text);
-				console.log('Loaded cityData:', parsed);
-				setCityData(parsed);
+		fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/city_counts`)
+			.then(res => res.ok ? res.json() : Promise.reject('Failed to fetch city data'))
+			.then(data => {
+				setCityData(data);
+			})
+			.catch(err => {
+				console.error('Error loading cityData:', err);
 			});
 	}, []);
+	
+	// Fetch CPU cores data for the CPU chart
+	useEffect(() => {
+		fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/cpu_cores`)
+			.then(res => res.ok ? res.json() : Promise.reject('Failed to fetch CPU cores'))
+			.then(data => {
+				// If API returns an array of {ts, value}, use the latest value
+				if (Array.isArray(data) && data.length > 0) {
+					setCpuCurrent(data[data.length - 1].value);
+				} else if (data && typeof data.value !== 'undefined') {
+					setCpuCurrent(data.value);
+				}
+			})
+			.catch(err => {
+				console.error('Error loading CPU cores:', err);
+			});
+	}, []);
+
 	// State for current values in charts
 	const [computeCurrent, setComputeCurrent] = useState(null);
 	const [feesCurrent, setFeesCurrent] = useState(null);
@@ -102,6 +121,8 @@ export default function Dashboard() {
 	const [priceCurrent, setPriceCurrent] = useState(null);
 	const [volumeCurrent, setVolumeCurrent] = useState(null);
 	const [marketCapCurrent, setMarketCapCurrent] = useState(null);
+
+
 
 	// State for selected time window for each chart
 	const [trendWindows, setTrendWindows] = useState({
@@ -246,7 +267,7 @@ export default function Dashboard() {
 					{selectedTab === 0 && (
 						<Paper elevation={2} sx={{ mb: 4, borderRadius: 4, p: 4, bgcolor: theme.palette.background.paper, maxWidth: '96vw', mx: 'auto' }} className="w-block">
 							<Typography variant="h4" component="h2" sx={{ mb: 3, color: theme.palette.primary.dark, fontSize: '2rem' }} className="w-block">Network</Typography>
-							{/* Distribution Section (moved to top) */}
+							{/* Distribution Section*/}
 							<Typography variant="h5" sx={{ mt: 2, mb: 1, color: theme.palette.primary.main, fontSize: '1.25rem' }} className="w-block">Distribution - Utilized</Typography>
 							<Box sx={{ width: '90%', borderBottom: '2px solid rgb(219,243,193)', mb: 1 }} className="w-clearfix" />
 							<Box sx={{ width: '100%', height: 500, bgcolor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 4 }} style={{ background: '#fff' }} className="w-block">
@@ -259,7 +280,7 @@ export default function Dashboard() {
 									hexBinPointsData={cityData}
 									hexBinPointLat={d => d.lat}
 									hexBinPointLng={d => d.lon}
-									hexBinResolution={4}
+									hexBinResolution={3}
 									hexAltitude={d => Math.min(0.15, d.sumWeight * 0.01)}
 									hexTopColor={() => saladPalette.green}
 									hexSideColor={() => saladPalette.darkGreen}
