@@ -7,6 +7,7 @@ import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import { Container, Typography, Box, Paper, Grid, ThemeProvider, createTheme, Tabs, Tab, CssBaseline, GlobalStyles } from '@mui/material';
 import { TrendChart, StackedChart } from './charts.jsx';
+import { generateRandomData, generateStackedData } from './data';
 
 // Simple CSV parser for node_count_by_city.csv
 function parseCityCSV(text) {
@@ -96,32 +97,36 @@ export default function Dashboard() {
 			});
 	}, []);
 	
-	// Fetch CPU cores data for the CPU chart
-	useEffect(() => {
-		fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/cpu_cores`)
-			.then(res => res.ok ? res.json() : Promise.reject('Failed to fetch CPU cores'))
-			.then(data => {
-				// If API returns an array of {ts, value}, use the latest value
-				if (Array.isArray(data) && data.length > 0) {
-					setCpuCurrent(data[data.length - 1].value);
-				} else if (data && typeof data.value !== 'undefined') {
-					setCpuCurrent(data.value);
-				}
-			})
-			.catch(err => {
-				console.error('Error loading CPU cores:', err);
-			});
-	}, []);
 
-	// State for current values in charts
-	const [computeCurrent, setComputeCurrent] = useState(null);
-	const [feesCurrent, setFeesCurrent] = useState(null);
-	const [cpuCurrent, setCpuCurrent] = useState(null);
-	const [memoryCurrent, setMemoryCurrent] = useState(null);
-	const [priceCurrent, setPriceCurrent] = useState(null);
-	const [volumeCurrent, setVolumeCurrent] = useState(null);
-	const [marketCapCurrent, setMarketCapCurrent] = useState(null);
+	// Helper for fetching metric trend data
+	function useMetricTrendData(endpoint, key) {
+		const [trendData, setTrendData] = useState([]);
+		useEffect(() => {
+			fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/${endpoint}`)
+				.then(res => res.ok ? res.json() : Promise.reject(`Failed to fetch ${endpoint}`))
+				.then(data => {
+					if (data && Array.isArray(data[key])) {
+						setTrendData(data[key].map(d => ({ x: d.ts, y: d.value })));
+					} else {
+						setTrendData([]);
+					}
+				})
+				.catch(err => {
+					console.error(`Error loading ${endpoint}:`, err);
+					setTrendData([]);
+				});
+		}, [endpoint, key]);
+		return trendData;
+	}
 
+	const totalCpuCoresTrendData = useMetricTrendData('total_cpu_cores', 'total_cpu_cores');
+	const totalMemoryTrendData = useMetricTrendData('total_memory', 'total_memory');
+	const totalNodesTrendData = useMetricTrendData('total_nodes', 'total_nodes');
+	const totalDiskTrendData = useMetricTrendData('total_disk', 'total_disk');
+	const runningReplicaTrendData = useMetricTrendData('running_replica_count', 'running_replica_count');
+	const runningDiskTrendData = useMetricTrendData('running_min_disk', 'running_min_disk');
+	const runningCpuTrendData = useMetricTrendData('running_min_cpu', 'running_min_cpu');
+	const runningMemoryTrendData = useMetricTrendData('running_min_ram', 'running_min_ram');
 
 
 	// State for selected time window for each chart
@@ -289,44 +294,50 @@ export default function Dashboard() {
 							{/* Usage Section */}
 							<Typography variant="h5" sx={{ mt: 2, mb: 1, color: theme.palette.primary.main, fontSize: '1.25rem' }} className="w-block">Usage</Typography>
 							<Box sx={{ width: '90%', borderBottom: '2px solid rgb(219,243,193)', mb: 1 }} className="w-clearfix" />
-							<Grid container spacing={3}>
+							<Grid container spacing={3} justifyContent="center">
 								<Grid item xs={12} md={6}>
-									<TrendChart id="computeChart" title="Compute (hours)" trendWindow={trendWindows.compute} setTrendWindow={win => setTrendWindows(w => ({ ...w, compute: win }))} currentValue={computeCurrent} setCurrentValue={setComputeCurrent} unit="hours" unitType="below" />
+									<TrendChart id="computeChart" title="Compute (hours)" trendWindow={trendWindows.compute} setTrendWindow={win => setTrendWindows(w => ({ ...w, compute: win }))} trendData={generateRandomData(100)} unit="hours" unitType="below" />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<TrendChart id="feesChart" title="Fees ($)" trendWindow={trendWindows.fees} setTrendWindow={win => setTrendWindows(w => ({ ...w, fees: win }))} currentValue={feesCurrent} setCurrentValue={setFeesCurrent} unit="$" unitType="front" />
+									<TrendChart id="feesChart" title="Fees ($)" trendWindow={trendWindows.fees} setTrendWindow={win => setTrendWindows(w => ({ ...w, fees: win }))} trendData={generateRandomData(100)} unit="$" unitType="front" />
 								</Grid>
 							</Grid>
 							{/* Resources Utilized Section */}
 							<Typography variant="h5" sx={{ mt: 4, mb: 1, color: theme.palette.primary.main, fontSize: '1.25rem' }} className="w-block">Resources Utilized</Typography>
 							<Box sx={{ width: '90%', borderBottom: '2px solid rgb(219,243,193)', mb: 1 }} className="w-clearfix" />
-							<Grid container spacing={3}>
+							<Grid container spacing={3} justifyContent="center">
 								<Grid item xs={12} md={6}>
-									<StackedChart id="gpuStackedChart" title="GPUs by Model" trendWindow={trendWindows.gpuStacked} setTrendWindow={win => setTrendWindows(w => ({ ...w, gpuStacked: win }))} labels={gpuModelLabels} />
+									<StackedChart id="gpuStackedChart" title="Utilized GPUs by Model" trendWindow={trendWindows.gpuStacked} setTrendWindow={win => setTrendWindows(w => ({ ...w, gpuStacked: win }))} labels={gpuModelLabels} />
 									<Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', mt: 1 }} />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<StackedChart id="gpuVramChart" title="GPUs by VRAM (count)" trendWindow={trendWindows.gpuVram} setTrendWindow={win => setTrendWindows(w => ({ ...w, gpuVram: win }))} labels={gpuVramLabels} />
+									<StackedChart id="gpuVramChart" title="Utilized GPUs by VRAM (count)" trendWindow={trendWindows.gpuVram} setTrendWindow={win => setTrendWindows(w => ({ ...w, gpuVram: win }))} labels={gpuVramLabels} />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<TrendChart id="cpuChart" title="CPUs (cores)" trendWindow={trendWindows.cpu} setTrendWindow={win => setTrendWindows(w => ({ ...w, cpu: win }))} currentValue={cpuCurrent} setCurrentValue={setCpuCurrent} unit="cores" unitType="below" />
+									<TrendChart id="cpuChart" title= "Utilized CPUs (cores)" trendWindow={trendWindows.cpu} setTrendWindow={win => setTrendWindows(w => ({ ...w, cpu: win }))} trendData={runningCpuTrendData} unit="cores" unitType="below" />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<TrendChart id="memoryChart" title="Memory (GB)" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} currentValue={memoryCurrent} setCurrentValue={setMemoryCurrent} unit="GB" unitType="below" />
+									<TrendChart id="memoryChart" title="Utilized Memory (GB)" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} trendData={runningMemoryTrendData} unit="GB" unitType="below" />
+								</Grid>
+								<Grid item xs={12} md={6}>
+									<TrendChart id="diskChart" title="Utilized Disk (GB)" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} trendData={runningDiskTrendData} unit="GB" unitType="below" />
+								</Grid>
+								<Grid item xs={12} md={6}>
+									<TrendChart id="replicaChart" title="Utilized Nodes" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} trendData={runningReplicaTrendData} unit="count" unitType="below" />
 								</Grid>
 							</Grid>
 							{/* Token Section */}
 							<Typography variant="h5" sx={{ mt: 4, mb: 1, color: theme.palette.primary.main, fontSize: '1.25rem' }} className="w-block">Token</Typography>
 							<Box sx={{ width: '90%', borderBottom: '2px solid rgb(219,243,193)', mb: 1 }} className="w-clearfix" />
-							<Grid container spacing={3}>
+							<Grid container spacing={3} justifyContent="center">
 								<Grid item xs={12} md={6}>
-									<TrendChart id="priceChart" title="$ Price" trendWindow={trendWindows.price} setTrendWindow={win => setTrendWindows(w => ({ ...w, price: win }))} currentValue={priceCurrent} setCurrentValue={setPriceCurrent} unit="$" unitType="front" />
+									<TrendChart id="priceChart" title="$ Price" trendWindow={trendWindows.price} setTrendWindow={win => setTrendWindows(w => ({ ...w, price: win }))} trendData={generateRandomData(100)}	unit="$" unitType="front" />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<TrendChart id="marketCapChart" title="Market Capitalization" trendWindow={trendWindows.marketCap} setTrendWindow={win => setTrendWindows(w => ({ ...w, marketCap: win }))} currentValue={marketCapCurrent} setCurrentValue={setMarketCapCurrent} unit="$" unitType="front" />
+									<TrendChart id="marketCapChart" title="Market Capitalization" trendWindow={trendWindows.marketCap} setTrendWindow={win => setTrendWindows(w => ({ ...w, marketCap: win }))} trendData={generateRandomData(100)} unit="$" unitType="front" />
 								</Grid>
 								<Grid item xs={12} md={6}>
-										<TrendChart id="volumeChart" title="Volume" trendWindow={trendWindows.volume} setTrendWindow={win => setTrendWindows(w => ({ ...w, volume: win }))} currentValue={volumeCurrent} setCurrentValue={setVolumeCurrent} />
+										<TrendChart id="volumeChart" title="Volume" trendWindow={trendWindows.volume} setTrendWindow={win => setTrendWindows(w => ({ ...w, volume: win }))} trendData={generateRandomData(100)}  />
 								</Grid>
 								<Grid item xs={12} md={6}></Grid>
 							</Grid>
@@ -348,18 +359,24 @@ export default function Dashboard() {
 									bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
 								/>
 							</Box>
-							<Grid container spacing={3}>
+							<Grid container spacing={3} justifyContent="center">
 								<Grid item xs={12} md={6}>
-									<StackedChart id="supplyGpuModelChart" title="GPUs by Model" trendWindow={trendWindows.gpuStacked} setTrendWindow={win => setTrendWindows(w => ({ ...w, gpuStacked: win }))} labels={gpuModelLabels} />
+									<StackedChart id="supplyGpuModelChart" title="Network GPUs by Model" trendWindow={trendWindows.gpuStacked} setTrendWindow={win => setTrendWindows(w => ({ ...w, gpuStacked: win }))} labels={gpuModelLabels} />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<StackedChart id="supplyGpuVramChart" title="GPUs by VRAM (count)" trendWindow={trendWindows.gpuVram} setTrendWindow={win => setTrendWindows(w => ({ ...w, gpuVram: win }))} labels={gpuVramLabels} />
+									<StackedChart id="supplyGpuVramChart" title="Network GPUs by VRAM (count)" trendWindow={trendWindows.gpuVram} setTrendWindow={win => setTrendWindows(w => ({ ...w, gpuVram: win }))} labels={gpuVramLabels} />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<StackedChart id="supplyCpuChart" title="CPUs (cores)" trendWindow={trendWindows.cpu} setTrendWindow={win => setTrendWindows(w => ({ ...w, cpu: win }))} labels={cpuMemLabels} />
+									<TrendChart id="supplyCpuChart" title="Network CPUs (cores)" trendWindow={trendWindows.cpu} setTrendWindow={win => setTrendWindows(w => ({ ...w, cpu: win }))} trendData={totalCpuCoresTrendData} unit="cores" unitType="below" />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<StackedChart id="supplyMemoryChart" title="Memory (GB)" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} labels={cpuMemLabels} />
+									<TrendChart id="supplyMemoryChart" title="Network Memory (GB)" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} trendData={totalMemoryTrendData} unit="GB" unitType="below" />
+								</Grid>
+								<Grid item xs={12} md={6}>
+									<TrendChart id="supplyDiskChart" title="Network Disk (GB)" trendWindow={trendWindows.disk} setTrendWindow={win => setTrendWindows(w => ({ ...w, disk: win }))} trendData={totalDiskTrendData} unit="GB" unitType="below" />
+								</Grid>
+								<Grid item xs={12} md={6}>
+									<TrendChart id="supplyNodesChart" title="Network Nodes (count)" trendWindow={trendWindows.nodes} setTrendWindow={win => setTrendWindows(w => ({ ...w, nodes: win }))} trendData={totalNodesTrendData} unit="count" unitType="below" />
 								</Grid>
 							</Grid>
 						</Paper>
@@ -371,7 +388,7 @@ export default function Dashboard() {
 							<Typography variant="h4" component="h2" sx={{ mb: 3, color: theme.palette.primary.dark, fontSize: '2rem' }} className="w-block">Supplier Chefs</Typography>
 							<Grid container spacing={3}>
 								<Grid item xs={12} md={6}>
-									<TrendChart id="meanEarningsChart" title="Mean Earnings per Machine (8hr min)" trendWindow={trendWindows.meanEarnings} setTrendWindow={win => setTrendWindows(w => ({ ...w, meanEarnings: win }))} currentValue={null} setCurrentValue={() => {}} unit="$" unitType="front" />
+									<TrendChart id="meanEarningsChart" title="Mean Earnings per Machine (8hr min)" trendWindow={trendWindows.meanEarnings} setTrendWindow={win => setTrendWindows(w => ({ ...w, meanEarnings: win }))} trendData={generateRandomData(100)} unit="$" unitType="front" />
 								</Grid>
 								<Grid item xs={12} md={6}>
 									<StackedChart id="earningsByGpuChart" title="Earnings by GPU ($)" trendWindow={trendWindows.earningsByGpu} setTrendWindow={win => setTrendWindows(w => ({ ...w, earningsByGpu: win }))} labels={earningsGpuLabels} />

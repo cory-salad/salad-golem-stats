@@ -11,6 +11,7 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import psycopg2
 
+
 def main():
     # Load .env variables
     load_dotenv()  # reads .env from current directory
@@ -21,7 +22,6 @@ def main():
     db_name = os.getenv("POSTGRES_DB")
     db_host = os.getenv("POSTGRES_HOST", "localhost")  # default localhost
     db_port = int(os.getenv("POSTGRES_PORT", 5432))    # default 5432
-
 
     conn = psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB"),
@@ -61,7 +61,7 @@ def main():
         "%Y-%m-%dT%H:%M:%S.%fZ"
     )
 
-    date_cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).strftime(
+    date_cutoff = (datetime.now(timezone.utc) - timedelta(hours=2)).strftime(
         "%Y-%m-%dT%H:%M:%S.%fZ"
     )
 
@@ -221,7 +221,7 @@ def main():
             running_replica_count += workload.get('replica_count', 0) or 0
             running_min_disk += (workload.get('min_disk', 0) or 0) / (1024 ** 3)
             running_min_cpu += (workload.get('min_cpu', 0) or 0) / 1000
-            running_min_ram += (workload.get('min_ram', 0) or 0) / (1024 ** 3)
+            running_min_ram += (workload.get('min_ram', 0) or 0) / (1024 ** 1)
 
     # City and country counts
     city_counter = Counter()
@@ -287,7 +287,7 @@ def main():
                     lat = float(data[0]['lat'])
                     lon = float(data[0]['lon'])
                     geocode_country_cache[country_code] = {'lat': lat, 'lon': lon}
-                    time.sleep(.5)  # Be polite to API
+                    time.sleep(2)  # Be polite to API
                     return geocode_country_cache[country_code]
         except Exception as e:
             print(f'Geocoding error for {country_code}: {e}')
@@ -455,8 +455,14 @@ def main():
 
     print(f"Total nodes: {total_nodes}")
 
-    # from mixpanel 
-    # need all nodes 
-
 if __name__ == "__main__":
-    main()
+
+    while True:
+        try:
+            print(f"[{datetime.now()}] Running ingest...")
+            main()
+            print("Done. Sleeping 2 hours...")
+        except Exception as e:
+            print("ERROR:", e)
+
+        time.sleep(2 * 60 * 60)

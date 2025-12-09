@@ -1,3 +1,29 @@
+# Helper for metric endpoints
+def get_metric_trend(metric_name, response_key, period):
+    now = datetime.utcnow()
+    if period == "day":
+        since = now - timedelta(days=365)
+    elif period == "week":
+        since = now - timedelta(weeks=365)
+    elif period == "month":
+        since = now - timedelta(days=365)
+    else:
+        since = now - timedelta(days=365)
+    with get_db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ts, value FROM metrics_scalar
+                WHERE metric_name = %s AND ts >= %s
+                ORDER BY ts ASC
+                """,
+                (metric_name, since.isoformat())
+            )
+            rows = cur.fetchall()
+            if rows:
+                return {response_key: [{"ts": r[0], "value": r[1]} for r in rows]}
+            raise HTTPException(status_code=404, detail=f"No data found for {metric_name}")
+
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 import uvicorn
@@ -45,43 +71,59 @@ class LoadStats(BaseModel):
 
 from datetime import datetime, timedelta
 
+# Total CPU Cores
+@app.get("/metrics/total_cpu_cores")
+def get_total_cpu_cores(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
+    return get_metric_trend("total_cores", "total_cpu_cores", period)
+
+# Total Memory
+@app.get("/metrics/total_memory")
+def get_total_memory(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
+    return get_metric_trend("total_memory", "total_memory", period)
+
+# Total Nodes
 @app.get("/metrics/total_nodes")
 def get_total_nodes(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
-    now = datetime.utcnow()
-    if period == "day":
-        since = now - timedelta(days=1)
-    elif period == "week":
-        since = now - timedelta(weeks=1)
-    elif period == "month":
-        since = now - timedelta(days=30)
-    else:
-        since = now - timedelta(days=1)
-    with get_db_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT ts, value FROM metrics_scalar
-                WHERE metric_name = 'total_nodes' AND ts >= %s
-                ORDER BY ts ASC
-                """,
-                (since.isoformat(),)
-            )
-            rows = cur.fetchall()
-            if rows:
-                return {"total_nodes": [{"ts": r[0], "value": r[1]} for r in rows]}
-            raise HTTPException(status_code=404, detail="No data found for period")
+    return get_metric_trend("total_nodes", "total_nodes", period)
+
+# Total Disk
+@app.get("/metrics/total_disk")
+def get_total_disk(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
+    return get_metric_trend("total_disk", "total_disk", period)
+
+# Running Replica Count
+@app.get("/metrics/running_replica_count")
+def get_running_replica_count(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
+    return get_metric_trend("running_replica_count", "running_replica_count", period)
+
+# Running Disk
+@app.get("/metrics/running_min_disk")
+def get_running_min_disk(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
+    return get_metric_trend("running_min_disk", "running_min_disk", period)
+
+# Running CPU
+@app.get("/metrics/running_min_cpu")
+def get_running_min_cpu(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
+    return get_metric_trend("running_min_cpu", "running_min_cpu", period)
+
+# Running Memory
+@app.get("/metrics/running_min_ram")
+def get_running_min_ram(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
+    return get_metric_trend("running_min_ram", "running_min_ram", period)
+        
+
 
 @app.get("/metrics/cpu_cores")
 def get_cpu_cores(period: str = Query("day", enum=["day", "week", "month"], description="Time period: day, week, or month")):
     now = datetime.utcnow()
     if period == "day":
-        since = now - timedelta(days=1)
+        since = now - timedelta(days=365)
     elif period == "week":
-        since = now - timedelta(weeks=1)
+        since = now - timedelta(weeks=365)
     elif period == "month":
-        since = now - timedelta(days=30)
+        since = now - timedelta(days=365)
     else:
-        since = now - timedelta(days=1)
+        since = now - timedelta(days=365)
     with get_db_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -96,7 +138,8 @@ def get_cpu_cores(period: str = Query("day", enum=["day", "week", "month"], desc
             if rows:
                 return {"cpu_cores": [{"ts": r[0], "value": r[1]} for r in rows]}
             raise HTTPException(status_code=404, detail="No data found for period")
-        
+
+
 @app.get("/metrics/city_counts")
 def get_city_counts():
     with get_db_conn() as conn:
