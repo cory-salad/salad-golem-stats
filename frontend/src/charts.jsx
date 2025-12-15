@@ -42,15 +42,7 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, trendData, 
       let numPoints = trendData.length;
       // Format all x labels
       const allLabels = trendData.map(d => formatXAxis(d.x, trendWindow));
-      // Pick 5 evenly spaced indices for ticks
-      let tickIndices = [];
-      if (numPoints > 1) {
-        for (let i = 0; i < 5; i++) {
-          tickIndices.push(Math.round(i * (numPoints - 1) / 4));
-        }
-      } else {
-        tickIndices = [0];
-      }
+      // No manual tick indices; let Chart.js handle x-axis ticks
       ctx._chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -78,16 +70,9 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, trendData, 
             x: {
               title: { display: false },
               ticks: {
-                callback: function(value, index) {
-                  // Only show ticks at selected indices
-                  if (tickIndices.includes(index)) {
-                    return this.getLabelForValue(index);
-                  }
-                  return '';
-                },
-                autoSkip: false,
+                autoSkip: true,
                 maxTicksLimit: 5
-              }
+              },
             },
             y: { title: { display: true, text: '' }, beginAtZero: true }
           }

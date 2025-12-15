@@ -302,8 +302,8 @@ export default function Dashboard() {
 									<TrendChart id="feesChart" title="Fees ($)" trendWindow={trendWindows.fees} setTrendWindow={win => setTrendWindows(w => ({ ...w, fees: win }))} trendData={generateRandomData(100)} unit="$" unitType="front" />
 								</Grid>
 							</Grid>
-							{/* Resources Utilized Section */}
-							<Typography variant="h5" sx={{ mt: 4, mb: 1, color: theme.palette.primary.main, fontSize: '1.25rem' }} className="w-block">Resources Utilized</Typography>
+							{/* Compute Resources Utilized Section */}
+							<Typography variant="h5" sx={{ mt: 4, mb: 1, color: theme.palette.primary.main, fontSize: '1.25rem' }} className="w-block">Compute Resources Utilized</Typography>
 							<Box sx={{ width: '90%', borderBottom: '2px solid rgb(219,243,193)', mb: 1 }} className="w-clearfix" />
 							<Grid container spacing={3} justifyContent="center">
 								<Grid item xs={12} md={6}>
@@ -321,6 +321,18 @@ export default function Dashboard() {
 								</Grid>
 								<Grid item xs={12} md={6}>
 									<TrendChart id="diskChart" title="Utilized Disk (GB)" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} trendData={runningDiskTrendData} unit="GB" unitType="below" />
+								</Grid>
+								<Grid item xs={12} md={6}>
+									<TrendChart id="replicaChart" title="Utilized Nodes" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} trendData={runningReplicaTrendData} unit="count" unitType="below" />
+								</Grid>
+							</Grid>
+							{/* Bandwidth Resources Utilized Section */}
+							<Typography variant="h5" sx={{ mt: 4, mb: 1, color: theme.palette.primary.main, fontSize: '1.25rem' }} className="w-block">Bandwidth Resources Utilized</Typography>
+							<Box sx={{ width: '90%', borderBottom: '2px solid rgb(219,243,193)', mb: 1 }} className="w-clearfix" />
+							<Grid container spacing={3} justifyContent="center">
+
+								<Grid item xs={12} md={6}>
+									<TrendChart id="cpuChart" title= "Total Utilized Bandwidth" trendWindow={trendWindows.cpu} setTrendWindow={win => setTrendWindows(w => ({ ...w, cpu: win }))} trendData={runningCpuTrendData} unit="cores" unitType="below" />
 								</Grid>
 								<Grid item xs={12} md={6}>
 									<TrendChart id="replicaChart" title="Utilized Nodes" trendWindow={trendWindows.memory} setTrendWindow={win => setTrendWindows(w => ({ ...w, memory: win }))} trendData={runningReplicaTrendData} unit="count" unitType="below" />
