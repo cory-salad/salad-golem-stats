@@ -2,3 +2,4 @@ fastapi[all]
 uvicorn
 psycopg2-binary
 python-dotenv
+black
