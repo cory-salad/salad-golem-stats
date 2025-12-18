@@ -1,13 +1,7 @@
 // Dashboard.jsx - Main dashboard component for Stats Salad
 // Uses Material-UI, Chart.jsx, react-globe.gl, and custom chart components
 
-// Chart label arrays for reuse
-const gpuModelLabels = ['5090s', '4090s', '3090s', '3060s', 'Other'];
-const gpuVramLabels = ['24GB', '12GB', '8GB', '<8GB'];
-
 import React, { useState, useRef, useEffect } from 'react';
-import Globe from 'react-globe.gl';
-import * as THREE from 'three';
 import {
   Container,
   Typography,
@@ -155,6 +149,44 @@ export default function Dashboard() {
     return stats;
   }
 
+  // Transform gpu_unique_node_count from statsSummary into chartData for StackedChart
+  function getGpuModelStackedDataFromStats(statsSummary) {
+    if (!statsSummary || !statsSummary.gpu_unique_node_count) return null;
+    const data = statsSummary.gpu_unique_node_count;
+    // data: [ { gpu_group, values: [ {ts, value}, ... ] }, ... ]
+    // Collect all unique timestamps for x-axis
+    const allTimestamps = Array.from(
+      new Set(
+        data.flatMap((groupObj) => groupObj.values.map((v) => v.ts))
+      )
+    ).sort();
+    // GPU group names as labels (for legend)
+    const groupLabels = data.map((groupObj) => groupObj.gpu_group);
+    
+    // Calculate total values for each GPU group to sort by highest to lowest
+    const groupTotals = data.map((groupObj) => {
+      const total = groupObj.values.reduce((sum, v) => sum + (v.value || 0), 0);
+      return { groupObj, total };
+    }).sort((a, b) => b.total - a.total);
+    
+    // Use the same 6-color green gradient as the legend (lightest to darkest for highest to lowest)
+    const legendColors = ['#b2d530', '#9acc35', '#7bb82e', '#53a626', '#3d6b28', '#1f4f22'];
+    
+    const datasets = groupTotals.map((item, i) => ({
+      label: item.groupObj.gpu_group,
+      data: allTimestamps.map((ts) => {
+        const found = item.groupObj.values.find((v) => v.ts === ts);
+        return found ? found.value : 0;
+      }),
+      backgroundColor: legendColors[i % legendColors.length],
+      borderColor: '#fff',
+      borderWidth: 1,
+      fill: true,
+    }));
+    // Return both x-axis (timestamps) and legend labels (gpu groups) with sorted order
+    return { labels: allTimestamps, datasets, groupLabels: groupTotals.map(item => item.groupObj.gpu_group) };
+  }
+
   const statsSummary = useStatsSummary(globalTimeWindow, 'all');
   // State for city node data
   const [cityData, setCityData] = useState([]);
@@ -185,42 +217,10 @@ export default function Dashboard() {
       });
   }, []);
 
-  // Helper for fetching metric trend data
-  function useMetricTrendData(endpoint, key) {
-    const [trendData, setTrendData] = useState([]);
-    useEffect(() => {
-      fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/${endpoint}`)
-        .then((res) => (res.ok ? res.json() : Promise.reject(`Failed to fetch ${endpoint}`)))
-        .then((data) => {
-          if (data && Array.isArray(data[key])) {
-            setTrendData(data[key].map((d) => ({ x: d.ts, y: d.value })));
-          } else {
-            setTrendData([]);
-          }
-        })
-        .catch((err) => {
-          console.error(`Error loading ${endpoint}:`, err);
-          setTrendData([]);
-        });
-    }, [endpoint, key]);
-    return trendData;
+  let gpuModelStackedData = getGpuModelStackedDataFromStats(statsSummary);
+  if (!gpuModelStackedData || !gpuModelStackedData.labels) {
+    gpuModelStackedData = { labels: [], datasets: [] };
   }
-
-  // State for selected time window for each chart
-  const [trendWindows, setTrendWindows] = useState({
-    compute: 'month',
-    fees: 'month',
-    gpuStacked: 'month',
-    gpuVram: 'month',
-    cpu: 'month',
-    memory: 'month',
-    price: 'month',
-    volume: 'month',
-    marketCap: 'month',
-    meanEarnings: 'month',
-    earningsByGpu: 'month',
-  });
-
 
   return (
     <ThemeProvider theme={theme}>
@@ -682,28 +682,27 @@ export default function Dashboard() {
             />
             <Grid container spacing={3} justifyContent="center">
               <Grid size={{ xs: 12, md: 6 }}>
-                <StackedChart
-                  id="gpuStackedChart"
-                  title="Utilized GPUs by Model"
-                  trendWindow={globalTimeWindow}
-                  setTrendWindow={() => {}}
-                  labels={gpuModelLabels}
-                />
+                {statsSummary ? (
+                  <StackedChart
+                    id="gpuStackedChart"
+                    title="Utilized GPUs by Model"
+                    trendWindow={globalTimeWindow}
+                    setTrendWindow={() => {}}
+                    chartData={gpuModelStackedData}
+                    labels={gpuModelStackedData.groupLabels}
+                  />
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    Loading...
+                  </Typography>
+                )}
                 <Typography
                   variant="body2"
                   color="textSecondary"
                   sx={{ textAlign: 'center', mt: 1 }}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <StackedChart
-                  id="gpuVramChart"
-                  title="Utilized GPUs by VRAM (count)"
-                  trendWindow={globalTimeWindow}
-                  setTrendWindow={() => {}}
-                  labels={gpuVramLabels}
-                />
-              </Grid>
+              {/* VRAM StackedChart removed until data is available */}
               {statsSummary ? (
                 <>
                   <Grid size={{ xs: 12, sm: 6 }}>

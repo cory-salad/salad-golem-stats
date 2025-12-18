@@ -4,7 +4,6 @@
 import React from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
 import { Chart } from 'chart.js/auto';
-import { generateRandomData, generateStackedData } from './data';
 
 // Default plot height for all charts
 const plotHeight = 300;
@@ -42,14 +41,12 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, trendData, 
   const yFormat = getYAxisFormat(yMax);
   function formatXAxis(ts, window) {
     const date = new Date(ts);
-    // Round to hour
-    date.setMinutes(0, 0, 0);
     if (window === 'day') {
-      // DD HH
-      return date.toLocaleString('en-US', { day: '2-digit', hour: '2-digit', hour12: false });
+      // DD HH:MM (locale-aware)
+      return date.toLocaleString(undefined, { day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
     } else {
-      // DD MMM YYYY
-      return date.toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+      // DD MMM YYYY (locale-aware)
+      return date.toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
     }
   }
 
@@ -309,30 +306,21 @@ export function TrendChart({ id, title, trendWindow, setTrendWindow, trendData, 
  *   setTrendWindow: function - updates time window
  *   labels: array - series labels
  */
-export function StackedChart({ id, title, trendWindow, setTrendWindow, labels }) {
+export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, chartData }) {
+    // Debug: print labels prop
+    React.useEffect(() => {
+      console.log('StackedChart labels prop:', labels);
+    }, [labels]);
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const [chartData, setChartData] = React.useState(null);
+  const [internalChartData, setInternalChartData] = React.useState(null);
   const [currents, setCurrents] = React.useState([]);
   const [isNarrow, setIsNarrow] = React.useState(
     typeof window !== 'undefined' ? window.innerWidth < 1400 : false,
   );
 
-  // Legend colors for stacked chart
-  const legendColors = ['#53a626', '#b2d530', '#1f4f22', '#dbb3c1', '#7b9a47'];
-
-  // Determine y-axis scale and label formatting for StackedChart
-  function getYAxisFormat(maxVal) {
-    if (maxVal >= 1e12) return { title: 'Trillions', factor: 1e12, suffix: 'T' };
-    if (maxVal >= 1e9) return { title: 'Billions', factor: 1e9, suffix: 'B' };
-    if (maxVal >= 1e6) return { title: 'Millions', factor: 1e6, suffix: 'M' };
-    if (maxVal >= 1e3) return { title: 'Thousands', factor: 1e3, suffix: 'k' };
-    return { title: '', factor: 1, suffix: '' };
-  }
-  const yMax = chartData
-    ? Math.max(...chartData.datasets.flatMap((ds) => ds.data).map((d) => Math.abs(d)))
-    : 0;
-  const yFormat = getYAxisFormat(yMax);
+  // Legend colors for stacked chart - 6 shades of green from lightest to darkest (since sorted highest to lowest)
+  const legendColors = ['#b2d530', '#9acc35', '#7bb82e', '#53a626', '#3d6b28', '#1f4f22'];
 
   // Responsive legend position
   React.useEffect(() => {
@@ -343,34 +331,61 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Generate stacked data when window or labels change
+  // Format x-axis labels consistently
+  function formatXAxis(ts, window) {
+    const date = new Date(ts);
+    if (window === 'day') {
+      // DD HH:MM (locale-aware)
+      return date.toLocaleString(undefined, { day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    } else {
+      // DD MMM YYYY (locale-aware)
+      return date.toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+  }
+
+  // Truncate labels to 8 characters with ellipsis
+  function truncateLabel(label) {
+    if (!label || label.length <= 8) return label;
+    return label.substring(0, 8) + '...';
+  }
+
+  // Use provided chartData only
   React.useEffect(() => {
-    let numPoints = trendWindow === 'month' ? 100 : trendWindow === 'week' ? 30 : 7;
-    const stackedData = generateStackedData(numPoints, labels.length);
-    stackedData.datasets.forEach((ds, i) => (ds.label = labels[i]));
-    setChartData(stackedData);
-    setCurrents(stackedData.datasets.map((ds) => ds.data[ds.data.length - 1]));
-  }, [trendWindow, labels]);
+    if (chartData) {
+      // Format the labels for consistent display
+      const formattedChartData = {
+        ...chartData,
+        labels: chartData.labels.map(label => formatXAxis(label, trendWindow))
+      };
+      setInternalChartData(formattedChartData);
+      setCurrents(chartData.datasets.map((ds) => ds.data[ds.data.length - 1]));
+    } else {
+      setInternalChartData(null);
+      setCurrents([]);
+    }
+  }, [chartData, trendWindow]);
+
+  // Determine y-axis scale and label formatting for StackedChart
+  function getYAxisFormat(maxVal) {
+    if (maxVal >= 1e12) return { title: 'Trillions', factor: 1e12, suffix: 'T' };
+    if (maxVal >= 1e9) return { title: 'Billions', factor: 1e9, suffix: 'B' };
+    if (maxVal >= 1e6) return { title: 'Millions', factor: 1e6, suffix: 'M' };
+    if (maxVal >= 1e3) return { title: 'Thousands', factor: 1e3, suffix: 'k' };
+    return { title: '', factor: 1, suffix: '' };
+  }
+  const yMax = internalChartData
+    ? Math.max(...internalChartData.datasets.flatMap((ds) => ds.data).map((d) => Math.abs(d)))
+    : 0;
+  const yFormat = getYAxisFormat(yMax);
 
   // Render chart when data changes
   React.useEffect(() => {
     const ctx = document.getElementById(id);
-    if (ctx && chartData) {
+    if (ctx && internalChartData) {
       if (ctx._chartInstance) ctx._chartInstance.destroy();
-
-      // Calculate y-axis formatting based on current data
-      const allValues = chartData.datasets.flatMap((ds) => ds.data);
-      const yMax = allValues.length > 0 ? Math.max(...allValues.map((d) => Math.abs(d))) : 0;
-
-      let yFormat = { title: '', factor: 1, suffix: '' };
-      if (yMax >= 1e12) yFormat = { title: 'Trillions', factor: 1e12, suffix: 'T' };
-      else if (yMax >= 1e9) yFormat = { title: 'Billions', factor: 1e9, suffix: 'B' };
-      else if (yMax >= 1e6) yFormat = { title: 'Millions', factor: 1e6, suffix: 'M' };
-      else if (yMax >= 1e3) yFormat = { title: 'Thousands', factor: 1e3, suffix: 'k' };
-
       ctx._chartInstance = new Chart(ctx, {
         type: 'line',
-        data: chartData,
+        data: internalChartData,
         options: {
           responsive: true,
           maintainAspectRatio: false,
@@ -389,6 +404,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
               },
             },
             y: {
+              stacked: true,
               title: {
                 display: !!yFormat.title,
                 text: yFormat.title,
@@ -411,20 +427,24 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
               },
             },
           },
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
         },
       });
     }
     return () => {
       if (ctx && ctx._chartInstance) ctx._chartInstance.destroy();
     };
-  }, [id, chartData]);
+  }, [id, internalChartData]);
 
-  // Time window options and mapping
-  const timeOptions = [
-    { key: 'day', label: '1d' },
-    { key: 'week', label: '7d' },
-    { key: 'month', label: '1m' },
-  ];
+  // Time window display mapping
+  const timeLabels = {
+    day: 'over the last day',
+    week: 'over the last week',
+    month: 'over the last month',
+  };
 
   return (
     <Box
@@ -435,40 +455,18 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
       sx={{ width: '100%' }}
       className="w-block"
     >
-      <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+      <Box display="flex" alignItems="center" sx={{ mb: 1, width: '100%' }}>
         <Typography
           variant="h6"
           component="h3"
-          sx={{ textAlign: 'left', color: theme.palette.primary.main, flex: '0 0 70%' }}
+          sx={{ textAlign: 'left', color: theme.palette.primary.main }}
           className="w-block"
         >
           {title}
         </Typography>
-        <Box display="flex" alignItems="center" sx={{ gap: 1, flex: '0 0 auto', ml: 2 }}>
-          {timeOptions.map((opt) => (
-            <button
-              key={opt.key}
-              className="w-button"
-              style={{
-                margin: 0,
-                padding: '2px 10px',
-                fontWeight: 400,
-                fontSize: '0.95rem',
-                background: trendWindow === opt.key ? '#f5f5f5' : '#fff',
-                color: '#aaa',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                boxShadow: 'none',
-                transition: 'background 0.2s',
-                minWidth: 36,
-              }}
-              onClick={() => setTrendWindow(opt.key)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </Box>
+        <Typography variant="body2" sx={{ color: '#aaa', fontSize: '0.95rem', ml: 2 }}>
+          {timeLabels[trendWindow] || 'last month'}
+        </Typography>
       </Box>
       <Box
         display="flex"
@@ -495,6 +493,9 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
         {/* Legend/value display: right or below chart depending on width */}
         {!isNarrow && (
           <Box sx={{ ml: 1.5, mt: 0, minWidth: 0, flex: 1 }} className="w-inline-block">
+            <Typography variant="caption" sx={{ color: '#aaa', fontSize: '0.8rem', mb: 1, display: 'block' }}>
+              {trendWindow === 'day' ? 'last hour:' : 'last day:'}
+            </Typography>
             {currents.length > 0
               ? currents.map((val, idx) => (
                   <Box
@@ -523,10 +524,10 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
                         color: 'rgb(31, 79, 34)',
                         fontSize: '0.875rem',
                         mr: 1,
-                        fontWeight: 700,
+                        fontWeight: 400,
                       }}
                     >
-                      {labels[idx]}: {val}
+                      <span style={{ fontWeight: 700 }}>{val}</span> {truncateLabel(labels[idx])}
                     </Typography>
                   </Box>
                 ))
@@ -538,48 +539,53 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels })
             sx={{
               width: '100%',
               display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
+              flexDirection: 'column',
+              alignItems: 'center',
               mt: 2,
             }}
             className="w-inline-block"
           >
-            {currents.length > 0
-              ? currents.map((val, idx) => (
-                  <Box
-                    key={idx}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    sx={{ mb: 1, mx: 2 }}
-                    className="w-inline-block"
-                  >
+            <Typography variant="caption" sx={{ color: '#aaa', fontSize: '0.8rem', mb: 1 }}>
+              {trendWindow === 'day' ? 'last hour' : 'last day'}
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {currents.length > 0
+                ? currents.map((val, idx) => (
                     <Box
-                      sx={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: '50%',
-                        bgcolor: legendColors[idx % legendColors.length],
-                        display: 'inline-block',
-                        mr: 1,
-                        border: '1px solid #bbb',
-                      }}
-                    />
-                    <Typography
-                      variant="body2"
-                      component="span"
-                      sx={{
-                        color: theme.palette.text.primary,
-                        fontSize: '0.875rem',
-                        mr: 1,
-                        fontWeight: 700,
-                      }}
+                      key={idx}
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      sx={{ mb: 1, mx: 2 }}
+                      className="w-inline-block"
                     >
-                      {labels[idx]}: {val}
-                    </Typography>
-                  </Box>
-                ))
-              : '--'}
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          bgcolor: legendColors[idx % legendColors.length],
+                          display: 'inline-block',
+                          mr: 1,
+                          border: '1px solid #bbb',
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        component="span"
+                        sx={{
+                          color: theme.palette.text.primary,
+                          fontSize: '0.875rem',
+                          mr: 1,
+                          fontWeight: 400,
+                        }}
+                      >
+                        <span style={{ fontWeight: 700 }}>{val}</span> {truncateLabel(labels[idx])}
+                      </Typography>
+                    </Box>
+                  ))
+                : '--'}
+            </Box>
           </Box>
         )}
       </Box>

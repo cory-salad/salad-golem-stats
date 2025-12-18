@@ -37,7 +37,7 @@ def get_db_conn():
     )
 
 
-def find_data(metric: str, period: str):
+def get_table_parameters(metric: str, period: str):
     now = datetime.utcnow()
     if metric in [
         "total_time_seconds",
@@ -72,34 +72,65 @@ def find_data(metric: str, period: str):
     return {"since": since, "table": table, "ts_col": ts_col}
 
 
-def get_metrics_by_gpu(metric: str, period: str = "day"):
+def get_metrics_by_gpu(metric: str, period: str = "month"):
 
     # query for all the GPUs in the time range.
     # find the totals by GPU group
 
-    data_info = find_data(metric=metric, period=period)
-    table = data_info["table"]
-    ts_col = data_info["ts_col"]
-    since = data_info["since"]
+    query_info = get_table_parameters(metric=metric, period=period)
+    table = query_info["table"]
+    ts_col = query_info["ts_col"]
+    since = query_info["since"]
 
-    query = f"""
-        SELECT gpu_group, {metric}, {period} FROM hourly_gpu_stats
-        WHERE {period} >= %s
-        GROUP BY gpu_group, {period}
-        ORDER BY {period} ASC
+    if table == "hourly_gpu_stats" and ts_col == "day":
+        query = f"""
+            SELECT gpu_group, DATE(hour) as day, SUM({metric}) as value
+            FROM {table}
+            WHERE gpu_group NOT IN ('all', 'any_gpu', 'no_gpu') AND hour >= %s
+            GROUP BY gpu_group, day
+            ORDER BY gpu_group, day ASC
+        """
+        params = (since,)
+    else:
+        query = f"""
+        SELECT gpu_group, {ts_col}, {metric} FROM {table}
+        WHERE gpu_group NOT IN ('all', 'any_gpu', 'no_gpu') AND {ts_col} >= %s
+        ORDER BY {ts_col} ASC
     """
+        params = (since,)
 
     with get_db_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(query, (since,))
+            cur.execute(query, params)
             rows = cur.fetchall()
-            result = {}
+            # Sum up the metric for each gpu_group
+            group_sums = {}
             for r in rows:
                 gpu_group = r[0]
-                if gpu_group not in result:
-                    result[gpu_group] = []
-                result[gpu_group].append({"ts": r[2], "value": r[1]})
-            return result
+                value = r[2] if len(r) > 2 else r[1]
+                group_sums[gpu_group] = group_sums.get(gpu_group, 0) + (value or 0)
+            # Find the top 5 gpu_groups by sum
+            top_groups = sorted(group_sums.items(), key=lambda x: x[1], reverse=True)[
+                :5
+            ]
+            top_group_names = set(g for g, _ in top_groups)
+            output = []
+            group_entries = {g: [] for g in top_group_names}
+            other_entries = []
+            for r in rows:
+                gpu_group = r[0]
+                ts = r[1] if len(r) > 2 else r[0]
+                value = r[2] if len(r) > 2 else r[1]
+                entry = {"ts": ts, "value": value}
+                if gpu_group in top_group_names:
+                    group_entries[gpu_group].append(entry)
+                else:
+                    other_entries.append(entry)
+            for g in top_group_names:
+                output.append({"gpu_group": g, "values": group_entries[g]})
+            if other_entries:
+                output.append({"gpu_group": "other", "values": other_entries})
+            return {metric: output}
 
 
 def get_metrics(metric: str, period: str = "day", gpu: str = "all"):
@@ -110,13 +141,12 @@ def get_metrics(metric: str, period: str = "day", gpu: str = "all"):
 
     print(metric)
 
-    data_info = find_data(metric=metric, period=period)
-    table = data_info["table"]
-    ts_col = data_info["ts_col"]
-    since = data_info["since"]
+    query_info = get_table_parameters(metric=metric, period=period)
+    table = query_info["table"]
+    ts_col = query_info["ts_col"]
+    since = query_info["since"]
 
     params = (gpu, since)
-
     if table == "hourly_gpu_stats" and ts_col == "day":
         query = f"""
             SELECT DATE(hour) as day, SUM({metric}) as value
@@ -167,14 +197,28 @@ def assemble_metrics(
         "unique_node_cpu",
     ]
 
+    gpu_metrics = [
+        "unique_node_count",
+        "total_time_seconds",
+    ]
+
     allowed_periods = ["day", "week", "month"]
 
     if period not in allowed_periods:
-        raise HTTPException(status_code=400, detail=f"Invalid period. Allowed: {allowed_periods}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid period. Allowed: {allowed_periods}"
+        )
 
     assembled_metrics = {}
     for metric in metrics:
-        assembled_metrics[metric] = get_metrics(metric=metric, period=period, gpu=gpu)[metric]
+        assembled_metrics[metric] = get_metrics(metric=metric, period=period, gpu=gpu)[
+            metric
+        ]
+
+    for metric in gpu_metrics:
+        assembled_metrics["gpu_" + metric] = get_metrics_by_gpu(
+            metric=metric, period=period
+        )[metric]
     return assembled_metrics
 
 
@@ -190,13 +234,17 @@ def get_city_counts():
             """
             )
             rows = cur.fetchall()
-            return [{"city": r[0], "count": r[1], "lat": r[2], "lon": r[3]} for r in rows]
+            return [
+                {"city": r[0], "count": r[1], "lat": r[2], "lon": r[3]} for r in rows
+            ]
 
 
 @app.get("/metrics/transactions")
 def get_transactions(
     limit: int = Query(10, ge=1, le=100),
-    start: Optional[str] = Query(None, description="Start datetime ISO8601 (default: 1 day ago)"),
+    start: Optional[str] = Query(
+        None, description="Start datetime ISO8601 (default: 1 day ago)"
+    ),
     end: Optional[str] = Query(None, description="End datetime ISO8601 (default: now)"),
 ):
     """
@@ -254,6 +302,24 @@ def get_transactions(
             }
         )
     return {"transactions": transactions}
+
+
+@app.get("/metrics/gpu_stats")
+def gpu_stats(
+    period: str = Query(
+        "day",
+        enum=["day", "week", "month"],
+        description="Time period: day, week, or month, default: day",
+    ),
+    metric: str = Query(
+        "total_time_seconds",
+        description="Metric to return (default: total_time_seconds)",
+    ),
+):
+    """
+    Returns GPU metrics for the specified period and metric.
+    """
+    return get_metrics_by_gpu(metric=metric, period=period)
 
 
 if __name__ == "__main__":
