@@ -8,13 +8,54 @@ import { Chart } from 'chart.js/auto';
 // Default plot height for all charts
 const plotHeight = 300;
 
+// Format dates specifically for tooltips (more detailed)
+const formatTooltipDate = (timestamp, window) => {
+  const date = new Date(timestamp);
+  if (window === 'day') {
+    // More detailed: "Dec 19, 2024 at 14:30"
+    return date.toLocaleString(undefined, { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  } else if (window === 'week') {
+    // More detailed: "Dec 19, 2024 at 14:30"
+    return date.toLocaleString(undefined, { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  } else {
+    // Month view: "Dec 19, 2024" (no time)
+    return date.toLocaleString(undefined, { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric'
+    });
+  }
+};
+
 // Common tooltip configuration for both chart types
-const getTooltipConfig = (isDark) => ({
+const getTooltipConfig = (isDark, originalTimestamps, window) => ({
   backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : '#fff',
   titleColor: isDark ? '#fff' : '#000',
   bodyColor: isDark ? '#fff' : '#000',
   usePointStyle: true,
   pointStyle: 'circle',
+  callbacks: {
+    title: function(context) {
+      // Use original timestamp for custom formatting
+      const index = context[0].dataIndex;
+      const timestamp = originalTimestamps[index];
+      return formatTooltipDate(timestamp, window);
+    }
+  }
 });
 
 /**
@@ -66,6 +107,7 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
     const yMax = trendData.length > 0 ? Math.max(...trendData.map((d) => Math.abs(d.y))) : 0;
     const yFormat = getYAxisFormat(yMax);
     const allLabels = trendData.map((d) => formatXAxis(d.x, trendWindow));
+    const originalTimestamps = trendData.map((d) => d.x);
 
     if (!chartRef.current) {
       // Create chart instance
@@ -94,7 +136,7 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
           plugins: {
             legend: { display: false },
             title: { display: false },
-            tooltip: getTooltipConfig(isDark),
+            tooltip: getTooltipConfig(isDark, originalTimestamps, trendWindow),
           },
           interaction: {
             mode: 'index',
@@ -168,14 +210,12 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
       chart.options.scales.x.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
       chart.options.scales.y.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
       chart.options.scales.y.ticks.color = isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.7)';
-      if (chart.options.plugins.tooltip) {
-        chart.options.plugins.tooltip.backgroundColor = isDark ? 'rgba(0,0,0,0.8)' : '#fff';
-        chart.options.plugins.tooltip.titleColor = isDark ? '#fff' : '#000';
-        chart.options.plugins.tooltip.bodyColor = isDark ? '#fff' : '#000';
-      }
+      // Update tooltip config with current theme and timestamps
+      const originalTimestamps = trendData.map((d) => d.x);
+      chart.options.plugins.tooltip = getTooltipConfig(isDark, originalTimestamps, trendWindow);
       chart.update('none');
     }
-  }, [theme.palette.mode]);
+  }, [theme.palette.mode, trendData, trendWindow]);
 
   // Value display logic
   const lastValue = trendData.length > 0 ? trendData[trendData.length - 1].y : null;
@@ -447,6 +487,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
 
     if (!chartRef.current) {
       if (internalChartData && internalChartData.labels && internalChartData.labels.length > 0) {
+        const originalTimestamps = chartData.labels; // Use original timestamps from chartData
         chartRef.current = new Chart(ctx, {
           type: 'line',
           data: internalChartData,
@@ -459,7 +500,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
             plugins: {
               legend: { display: false },
               title: { display: false },
-              tooltip: getTooltipConfig(isDark),
+              tooltip: getTooltipConfig(isDark, originalTimestamps, trendWindow),
             },
             elements: { point: { radius: 0, hoverRadius: 0, borderWidth: 0 } },
             scales: {
@@ -536,14 +577,12 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
       chart.options.scales.x.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
       chart.options.scales.y.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
       chart.options.scales.y.ticks.color = isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)';
-      if (chart.options.plugins.tooltip) {
-        chart.options.plugins.tooltip.backgroundColor = isDark ? 'rgba(0,0,0,0.8)' : '#fff';
-        chart.options.plugins.tooltip.titleColor = isDark ? '#fff' : '#000';
-        chart.options.plugins.tooltip.bodyColor = isDark ? '#fff' : '#000';
-      }
+      // Update tooltip config with current theme and timestamps
+      const originalTimestamps = chartData ? chartData.labels : [];
+      chart.options.plugins.tooltip = getTooltipConfig(isDark, originalTimestamps, trendWindow);
       chart.update('none');
     }
-  }, [theme.palette.mode]);
+  }, [theme.palette.mode, chartData, trendWindow]);
 
   // Time window display mapping
   const timeLabels = {
