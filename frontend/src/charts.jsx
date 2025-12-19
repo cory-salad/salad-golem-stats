@@ -339,6 +339,7 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
 export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, chartData, unit }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const chartRef = React.useRef(null);
   const [internalChartData, setInternalChartData] = React.useState(null);
   const [currents, setCurrents] = React.useState([]);
   const [isNarrow, setIsNarrow] = React.useState(
@@ -420,21 +421,24 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
   // Render chart when data changes
   React.useEffect(() => {
     const ctx = document.getElementById(id);
-    if (ctx) {
-      // Always destroy existing chart and create fresh one
-      if (ctx._chartInstance) {
-        ctx._chartInstance.destroy();
-        ctx._chartInstance = null;
-      }
-      
-      // Only create new chart if we have data
+    if (!ctx) return;
+
+    const yMax = internalChartData
+      ? Math.max(...internalChartData.datasets.flatMap((ds) => ds.data).map((d) => Math.abs(d)))
+      : 0;
+    const yFormat = getYAxisFormat(yMax);
+
+    if (!chartRef.current) {
       if (internalChartData && internalChartData.labels && internalChartData.labels.length > 0) {
-        ctx._chartInstance = new Chart(ctx, {
+        chartRef.current = new Chart(ctx, {
           type: 'line',
           data: internalChartData,
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+              duration: 0,
+            },
             plugins: {
               legend: { display: false },
               title: { display: false },
@@ -486,17 +490,34 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
           },
         });
       }
+    } else {
+      const chart = chartRef.current;
+      if (internalChartData) {
+        chart.data = internalChartData;
+        chart.options.scales.y.ticks.callback = function (value) {
+          if (yFormat.factor === 1) return value.toLocaleString();
+          const v = value / yFormat.factor;
+          if (v % 1 === 0) return v + yFormat.suffix;
+          if (Math.abs(v) < 10) return v.toFixed(2).replace(/\.?0+$/, '') + yFormat.suffix;
+          if (Math.abs(v) < 100) return v.toFixed(1).replace(/\.?0+$/, '') + yFormat.suffix;
+          return Math.round(v) + yFormat.suffix;
+        };
+        chart.update('none');
+      }
     }
+
     return () => {
-      if (ctx && ctx._chartInstance) ctx._chartInstance.destroy();
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
     };
-  }, [id, internalChartData]); // Only update when data actually changes
+  }, [id, internalChartData, isDark]); // isDark is needed to re-evaluate options on theme change
 
   // Update colors when theme changes without reloading chart
   React.useEffect(() => {
-    const ctx = document.getElementById(id);
-    if (ctx && ctx._chartInstance) {
-      const chart = ctx._chartInstance;
+    if (chartRef.current) {
+      const chart = chartRef.current;
       const isDark = theme.palette.mode === 'dark';
       chart.options.scales.x.ticks.color = isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)';
       chart.options.scales.x.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
@@ -509,7 +530,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
       }
       chart.update('none');
     }
-  }, [theme.palette.mode, id, internalChartData]);
+  }, [theme.palette.mode]);
 
   // Time window display mapping
   const timeLabels = {
