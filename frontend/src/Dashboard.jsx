@@ -155,45 +155,6 @@ export default function Dashboard() {
     return stats;
   }
 
-  // Transform gpu_unique_node_count from statsSummary into chartData for StackedChart
-  function getGpuModelStackedDataFromStats(statsSummary) {
-    if (!statsSummary || !statsSummary.gpu_unique_node_count) return null;
-    const data = statsSummary.gpu_unique_node_count;
-    // data: [ { group, values: [ {ts, value}, ... ] }, ... ]
-    // Collect all unique timestamps for x-axis
-    const allTimestamps = Array.from(
-      new Set(
-        data.flatMap((groupObj) => groupObj.values.map((v) => v.ts))
-      )
-    ).sort();
-    // GPU group names as labels (for legend)
-    const groupLabels = data.map((groupObj) => groupObj.group);
-
-    // Calculate total values for each GPU group to sort by highest to lowest
-    const groupTotals = data.map((groupObj) => {
-      const total = groupObj.values.reduce((sum, v) => sum + (v.value || 0), 0);
-      return { groupObj, total };
-    }).sort((a, b) => b.total - a.total);
-
-    // Use the same 6-color green gradient as the legend (lightest to darkest for highest to lowest)
-    const legendColors = ['#b2d530', '#9acc35', '#7bb82e', '#53a626', '#3d6b28', '#1f4f22'];
-
-    const datasets = groupTotals.map((item, i) => ({
-      label: item.groupObj.group,
-      data: allTimestamps.map((ts) => {
-        const found = item.groupObj.values.find((v) => v.ts === ts);
-        return found ? found.value : 0;
-      }),
-      backgroundColor: legendColors[i % legendColors.length],
-      borderColor: '#fff',
-      borderWidth: 1,
-      fill: true,
-    }));
-
-    // Return both x-axis (timestamps) and legend labels (gpu groups) with sorted order
-    return { labels: allTimestamps, datasets, groupLabels: groupTotals.map(item => item.groupObj.group) };
-  }
-
   const statsSummary = useStatsSummary(globalTimeWindow, 'all');
   // State for city node data
   const [cityData, setCityData] = useState([]);
@@ -224,10 +185,35 @@ export default function Dashboard() {
       });
   }, []);
 
-  let gpuModelStackedData = getGpuModelStackedDataFromStats(statsSummary);
-  if (!gpuModelStackedData || !gpuModelStackedData.labels) {
-    gpuModelStackedData = { labels: [], datasets: [] };
-  }
+  // Simple transformation since backend already does the sorting and grouping
+  const gpuModelStackedData = React.useMemo(() => {
+    if (!statsSummary?.gpu_unique_node_count) {
+      return { labels: [], datasets: [] };
+    }
+    
+    const data = statsSummary.gpu_unique_node_count;
+    const legendColors = ['#b2d530', '#9acc35', '#7bb82e', '#53a626', '#3d6b28', '#1f4f22'];
+    
+    // Get all unique timestamps
+    const allTimestamps = Array.from(
+      new Set(data.flatMap(groupObj => groupObj.values.map(v => v.ts)))
+    ).sort();
+    
+    // Convert to Chart.js format - backend already sorted by usage
+    const datasets = data.map((groupObj, i) => ({
+      label: groupObj.group,
+      data: allTimestamps.map(ts => {
+        const found = groupObj.values.find(v => v.ts === ts);
+        return found ? found.value : 0;
+      }),
+      backgroundColor: legendColors[i % legendColors.length],
+      borderColor: '#fff',
+      borderWidth: 1,
+      fill: true,
+    }));
+    
+    return { labels: allTimestamps, datasets };
+  }, [statsSummary]);
 
   return (
     <ThemeProvider theme={theme}>

@@ -446,6 +446,8 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
                 backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : '#fff',
                 titleColor: isDark ? '#fff' : '#000',
                 bodyColor: isDark ? '#fff' : '#000',
+                usePointStyle: true,
+                pointStyle: 'circle',
               },
             },
             elements: { point: { radius: 0, hoverRadius: 0, borderWidth: 0 } },
