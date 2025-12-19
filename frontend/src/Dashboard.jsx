@@ -119,6 +119,8 @@ export default function Dashboard() {
   const [globalTimeWindow, setGlobalTimeWindow] = useState('month');
   // Loading state for time selector
   const [isLoading, setIsLoading] = useState(false);
+  // Track which time window button is loading
+  const [loadingTimeWindow, setLoadingTimeWindow] = useState(null);
   // Theme mode state with persistence
   const [themeMode, setThemeMode] = useState(getInitialTheme);
 
@@ -140,12 +142,14 @@ export default function Dashboard() {
         .then((res) => (res.ok ? res.json() : Promise.reject('Failed to fetch stats')))
         .then((data) => {
           setStats(data);
-          setIsLoading(false); // Clear loading state when data arrives
+          setIsLoading(false);
+          setLoadingTimeWindow(null);
         })
         .catch((err) => {
           console.error('Error loading stats summary:', err);
           setStats(null);
           setIsLoading(false);
+          setLoadingTimeWindow(null);
         });
     }, [period, gpu]);
     return stats;
@@ -361,9 +365,11 @@ export default function Dashboard() {
               style={{
                 padding: '4px 12px',
                 fontSize: '0.9rem',
-                background: globalTimeWindow === opt.key
-                  ? saladPalette.green
-                  : 'transparent',
+                background: loadingTimeWindow === opt.key
+                  ? '#666'
+                  : globalTimeWindow === opt.key
+                    ? saladPalette.green
+                    : 'transparent',
                 color: '#fff',
                 border: '1px solid #999',
                 borderRadius: '4px',
@@ -373,6 +379,7 @@ export default function Dashboard() {
                 outline: 'none',
               }}
               onClick={() => {
+                setLoadingTimeWindow(opt.key);
                 setGlobalTimeWindow(opt.key);
               }}
             >
