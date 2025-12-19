@@ -614,7 +614,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
                       variant="body2"
                       component="span"
                       sx={{
-                        color: 'rgb(31, 79, 34)',
+                        color: isDark ? 'rgb(178,213,48)' : 'rgb(31, 79, 34)',
                         fontSize: '0.875rem',
                         mr: 1,
                         fontWeight: 400,
@@ -667,7 +667,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
                         variant="body2"
                         component="span"
                         sx={{
-                          color: theme.palette.text.primary,
+                          color: isDark ? 'rgb(178,213,48)' : 'rgb(31, 79, 34)',
                           fontSize: '0.875rem',
                           mr: 1,
                           fontWeight: 400,

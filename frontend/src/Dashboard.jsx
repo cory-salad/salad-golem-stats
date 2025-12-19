@@ -118,7 +118,7 @@ export default function Dashboard() {
   // Global time window state for all charts
   const [globalTimeWindow, setGlobalTimeWindow] = useState('month');
   // Loading state for time selector
-  const [isLoadingTimeData, setIsLoadingTimeData] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   // Theme mode state with persistence
   const [themeMode, setThemeMode] = useState(getInitialTheme);
 
@@ -135,16 +135,17 @@ export default function Dashboard() {
     const [stats, setStats] = useState(null);
     useEffect(() => {
       // Don't clear existing data - keep old charts visible during loading
+      setIsLoading(true);
       fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/stats?period=${period}&gpu=${gpu}`)
         .then((res) => (res.ok ? res.json() : Promise.reject('Failed to fetch stats')))
         .then((data) => {
           setStats(data);
-          setIsLoadingTimeData(false); // Only clear loading state when data arrives
+          setIsLoading(false); // Clear loading state when data arrives
         })
         .catch((err) => {
           console.error('Error loading stats summary:', err);
           setStats(null);
-          setIsLoadingTimeData(false);
+          setIsLoading(false);
         });
     }, [period, gpu]);
     return stats;
@@ -357,25 +358,21 @@ export default function Dashboard() {
           ].map((opt) => (
             <button
               key={opt.key}
-              disabled={isLoadingTimeData}
               style={{
                 padding: '4px 12px',
                 fontSize: '0.9rem',
-                background: isLoadingTimeData
-                  ? '#666'
-                  : globalTimeWindow === opt.key
-                    ? saladPalette.green
-                    : 'transparent',
+                background: globalTimeWindow === opt.key
+                  ? saladPalette.green
+                  : 'transparent',
                 color: '#fff',
                 border: '1px solid #999',
                 borderRadius: '4px',
-                cursor: isLoadingTimeData ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 transition: 'all 0.2s',
                 minWidth: '32px',
                 outline: 'none',
               }}
               onClick={() => {
-                setIsLoadingTimeData(true);
                 setGlobalTimeWindow(opt.key);
               }}
             >
@@ -564,7 +561,7 @@ export default function Dashboard() {
                       }
                       unit="$"
                       unitType="front"
-                      isLoading={isLoadingTimeData}
+                      isLoading={isLoading}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -581,7 +578,7 @@ export default function Dashboard() {
                       }
                       unit="tx"
                       unitType="below"
-                      isLoading={isLoadingTimeData}
+                      isLoading={isLoading}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -595,7 +592,7 @@ export default function Dashboard() {
                       }
                       unit="sec"
                       unitType="below"
-                      isLoading={isLoadingTimeData}
+                      isLoading={isLoading}
                     />
                   </Grid>
                 </>
@@ -634,7 +631,7 @@ export default function Dashboard() {
                       }
                       unit=""
                       unitType="front"
-                      isLoading={isLoadingTimeData}
+                      isLoading={isLoading}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -648,7 +645,7 @@ export default function Dashboard() {
                       }
                       unit="GB"
                       unitType="below"
-                      isLoading={isLoadingTimeData}
+                      isLoading={isLoading}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -662,7 +659,7 @@ export default function Dashboard() {
                       }
                       unit="CPU cores"
                       unitType="below"
-                      isLoading={isLoadingTimeData}
+                      isLoading={isLoading}
                     />
                   </Grid>
                 </>
@@ -725,7 +722,7 @@ export default function Dashboard() {
                       }
                       unit="CPU-hr"
                       unitType="below"
-                      isLoading={isLoadingTimeData}
+                      isLoading={isLoading}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -739,7 +736,7 @@ export default function Dashboard() {
                       }
                       unit="GB-hr"
                       unitType="below"
-                      isLoading={isLoadingTimeData}
+                      isLoading={isLoading}
                     />
                   </Grid>
                 </>
