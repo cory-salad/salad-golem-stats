@@ -71,7 +71,16 @@ const getTooltipConfig = (isDark, originalTimestamps, window) => ({
  *   unit: string (optional) - unit to display
  *   unitType: 'front'|'below' (optional) - unit display style
  */
-export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, isLoading }) {
+export function TrendChart({
+  id,
+  title,
+  description,
+  trendWindow,
+  trendData,
+  unit,
+  unitType,
+  isLoading,
+}) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const chartRef = React.useRef(null);
@@ -352,12 +361,12 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
     <Box
       display="flex"
       flexDirection="column"
-      alignItems="center"
+      alignItems="flex-start"
       justifyContent="center"
       sx={{ width: '100%' }}
       className="w-block"
     >
-      <Box display="flex" alignItems="center" sx={{ mb: 1, width: '100%' }}>
+      <Box display="flex" alignItems="center" sx={{ mb: 0, width: '100%' }}>
         <Typography
           variant="h6"
           component="h3"
@@ -370,6 +379,21 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
           {timeLabels[trendWindow] || 'last month'}
         </Typography>
       </Box>
+      {description && (
+        <Typography
+          variant="body2"
+          sx={{
+            color: '#aaa',
+            fontSize: '0.95rem',
+            mb: 2,
+            textAlign: 'left',
+            opacity: 1,
+            lineHeight: 1.4,
+          }}
+        >
+          {description}
+        </Typography>
+      )}
       <Box
         display="flex"
         flexDirection={{ xs: 'column', sm: 'row' }}
@@ -422,7 +446,16 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
  *   setTrendWindow: function - updates time window
  *   labels: array - series labels
  */
-export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, chartData, unit }) {
+export function StackedChart({
+  id,
+  title,
+  description,
+  trendWindow,
+  setTrendWindow,
+  labels,
+  chartData,
+  unit,
+}) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const chartRef = React.useRef(null);
@@ -665,12 +698,12 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
     <Box
       display="flex"
       flexDirection="column"
-      alignItems="center"
+      alignItems="flex-start"
       justifyContent="center"
       sx={{ width: '100%' }}
       className="w-block"
     >
-      <Box display="flex" alignItems="center" sx={{ mb: 1, width: '100%' }}>
+      <Box display="flex" alignItems="center" sx={{ mb: 0, width: '100%' }}>
         <Typography
           variant="h6"
           component="h3"
@@ -683,6 +716,21 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
           {timeLabels[trendWindow] || 'last month'}
         </Typography>
       </Box>
+      {description && (
+        <Typography
+          variant="body2"
+          sx={{
+            color: '#aaa',
+            fontSize: '0.95rem',
+            mb: 1,
+            textAlign: 'left',
+            opacity: 0.8,
+            lineHeight: 1.4,
+          }}
+        >
+          {description}
+        </Typography>
+      )}
       <Box
         display="flex"
         flexDirection={{ xs: 'column', sm: 'row' }}

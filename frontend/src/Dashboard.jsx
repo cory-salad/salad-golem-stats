@@ -15,6 +15,19 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material';
+import { TrendChart, StackedChart } from './charts.jsx';
+import TransactionsTable from './TransactionsTable.jsx';
+import GlobeComponent from './Globe.jsx';
+
+// Custom color palette
+const saladPalette = {
+  green: 'rgb(83,166,38)', // Main accent green
+  darkGreen: 'rgb(31,79,34)', // Darker green
+  lime: 'rgb(178,213,48)', // Lime accent
+  midGreen: 'rgb(120,200,60)', // Midway green for globe bars in dark mode
+  lightGreen: 'rgb(219,243,193)', // Light green background
+  navy: 'rgb(10,33,51)', // Deep navy for backgrounds
+};
 
 // StyledPaper: reusable Paper with common dashboard styles
 function StyledPaper({ children, sx = {}, ...props }) {
@@ -72,20 +85,6 @@ function StyledHeading({ children, mt = 2, ...props }) {
     </>
   );
 }
-
-import { TrendChart, StackedChart } from './charts.jsx';
-import TransactionsTable from './TransactionsTable.jsx';
-import GlobeComponent from './Globe.jsx';
-
-// Custom color palette
-const saladPalette = {
-  green: 'rgb(83,166,38)', // Main accent green
-  darkGreen: 'rgb(31,79,34)', // Darker green
-  lime: 'rgb(178,213,48)', // Lime accent
-  midGreen: 'rgb(120,200,60)', // Midway green for globe bars in dark mode
-  lightGreen: 'rgb(219,243,193)', // Light green background
-  navy: 'rgb(10,33,51)', // Deep navy for backgrounds
-};
 
 // Material-UI theme functions for light and dark modes
 const createAppTheme = (mode) =>
@@ -592,6 +591,7 @@ export default function Dashboard() {
                     <TrendChart
                       id="unique_node_count"
                       title="Active Unique Nodes"
+                      description="Number of SaladCloud providers that ran workloads."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       trendData={statsSummary.unique_node_count || []}
@@ -604,6 +604,7 @@ export default function Dashboard() {
                     <TrendChart
                       id="trend-total-invoice-amount"
                       title="Fees Paid ($)"
+                      description="Fees paid by customers for workloads running on SaladCloud."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       trendData={statsSummary.total_invoice_amount || []}
@@ -616,11 +617,12 @@ export default function Dashboard() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TrendChart
                       id="trend-total-time-seconds"
-                      title="Compute Time (sec)"
+                      title="Compute Time (s)"
+                      description="Time customer workloads ran on SaladCloud."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       trendData={statsSummary.total_time_seconds || []}
-                      unit="sec"
+                      unit="s"
                       unitType="below"
                       isLoading={isLoading}
                     />
@@ -628,11 +630,12 @@ export default function Dashboard() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TrendChart
                       id="trend-total-transaction-count"
-                      title="Transaction Count (tx)"
+                      title="Transaction Count"
+                      description="Total number of compute transactions between customers and providers."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       trendData={statsSummary.total_transaction_count || []}
-                      unit="tx"
+                      unit=""
                       unitType="below"
                       isLoading={isLoading}
                     />
@@ -655,6 +658,7 @@ export default function Dashboard() {
                     <TrendChart
                       id="trend-total-ram-hours"
                       title="Memory (GB-hr)"
+                      description="Aggregated RAM usage across all workloads and provider nodes."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       trendData={statsSummary.total_ram_hours || []}
@@ -667,6 +671,7 @@ export default function Dashboard() {
                     <TrendChart
                       id="trend-total-cpu-hours"
                       title="vCPUs (vCPU-hr)"
+                      description="Aggregated vCPU usage across all workloads and provider nodes."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       trendData={statsSummary.total_cpu_hours || []}
@@ -679,6 +684,7 @@ export default function Dashboard() {
                     <StackedChart
                       id="gpuStackedChart"
                       title="GPUs Used by Model"
+                      description="Provider nodes running GPU workloads, by model."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       chartData={gpuModelStackedData}
@@ -690,6 +696,7 @@ export default function Dashboard() {
                     <StackedChart
                       id="gpuStackedChartVram"
                       title="GPUs Used by VRAM"
+                      description="Provider nodes running GPU workloads, by VRAM."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       chartData={gpuModelStackedData}
@@ -700,7 +707,8 @@ export default function Dashboard() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <StackedChart
                       id="gpuStackedChartTime"
-                      title="GPUs Used by Model"
+                      title="GPUs Time by Model (s)"
+                      description="Time GPU customer workloads were running on SaladCloud, by GPU."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       chartData={gpuModelStackedData}
@@ -711,7 +719,8 @@ export default function Dashboard() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <StackedChart
                       id="gpuStackedChartVramTime"
-                      title="GPUs Used by VRAM"
+                      title="GPUs Time by VRAM (s)"
+                      description="Time GPU customer workloads were running on SaladCloud, by VRAM."
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       chartData={gpuModelStackedData}
