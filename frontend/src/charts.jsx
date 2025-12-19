@@ -8,6 +8,15 @@ import { Chart } from 'chart.js/auto';
 // Default plot height for all charts
 const plotHeight = 300;
 
+// Common tooltip configuration for both chart types
+const getTooltipConfig = (isDark) => ({
+  backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : '#fff',
+  titleColor: isDark ? '#fff' : '#000',
+  bodyColor: isDark ? '#fff' : '#000',
+  usePointStyle: true,
+  pointStyle: 'circle',
+});
+
 /**
  * TrendChart - Line chart for single series trends
  * Props:
@@ -82,7 +91,15 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
           animation: {
             duration: 0, // No animation to prevent weird transitions
           },
-          plugins: { legend: { display: false }, title: { display: false } },
+          plugins: {
+            legend: { display: false },
+            title: { display: false },
+            tooltip: getTooltipConfig(isDark),
+          },
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
           scales: {
             x: {
               title: { display: false },
@@ -442,13 +459,7 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
             plugins: {
               legend: { display: false },
               title: { display: false },
-              tooltip: {
-                backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : '#fff',
-                titleColor: isDark ? '#fff' : '#000',
-                bodyColor: isDark ? '#fff' : '#000',
-                usePointStyle: true,
-                pointStyle: 'circle',
-              },
+              tooltip: getTooltipConfig(isDark),
             },
             elements: { point: { radius: 0, hoverRadius: 0, borderWidth: 0 } },
             scales: {
