@@ -10,34 +10,42 @@ import {
   Grid,
   ThemeProvider,
   createTheme,
-  Tabs,
-  Tab,
   CssBaseline,
   GlobalStyles,
   Switch,
   FormControlLabel,
 } from '@mui/material';
+
+// StyledPaper: reusable Paper with common dashboard styles
+function StyledPaper({ children, sx = {}, ...props }) {
+  // theme is available via ThemeProvider context
+  // Use function form for sx to access theme
+  return (
+    <Paper
+      elevation={2}
+      sx={(theme) => ({
+        pt: 1,
+        mb: 4,
+        borderRadius: 2,
+        px: 4,
+        pb: 4,
+        bgcolor: theme.palette.background.paper,
+        border: `1px solid ${theme.palette.mode === 'dark' ? '#333' : '#e0e0e0'}`,
+        backgroundImage: 'none',
+        maxWidth: '96vw',
+        mx: 'auto',
+        ...(typeof sx === 'function' ? sx(theme) : sx),
+      })}
+      className="w-block"
+      {...props}
+    >
+      {children}
+    </Paper>
+  );
+}
 import { TrendChart, StackedChart } from './charts.jsx';
 import TransactionsTable from './TransactionsTable.jsx';
 import GlobeComponent from './Globe.jsx';
-
-// Simple CSV parser for node_count_by_city.csv
-function parseCityCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const header = lines[0].split(',');
-  return lines
-    .slice(1)
-    .map((line) => {
-      const cols = line.split(',');
-      return {
-        city: cols[0],
-        count: Number(cols[1]),
-        lat: cols[2] ? Number(cols[2]) : undefined,
-        lon: cols[3] ? Number(cols[3]) : undefined,
-      };
-    })
-    .filter((row) => row.lat && row.lon && row.count > 0);
-}
 
 // Custom color palette
 const saladPalette = {
@@ -81,12 +89,54 @@ const createAppTheme = (mode) =>
         'ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji',
       fontSize: 14,
       lineHeight: '20px',
-      h1: { fontWeight: 700, fontSize: 38, lineHeight: '44px', marginTop: 20, marginBottom: 10, color: mode === 'dark' ? saladPalette.lime : saladPalette.green },
-      h2: { fontWeight: 700, fontSize: 32, lineHeight: '36px', marginTop: 20, marginBottom: 10, color: mode === 'dark' ? saladPalette.lime : saladPalette.green },
-      h3: { fontWeight: 700, fontSize: 24, lineHeight: '30px', marginTop: 20, marginBottom: 10, color: mode === 'dark' ? saladPalette.lime : saladPalette.green },
-      h4: { fontWeight: 700, fontSize: 18, lineHeight: '24px', marginTop: 10, marginBottom: 10, color: mode === 'dark' ? saladPalette.lime : saladPalette.green },
-      h5: { fontWeight: 700, fontSize: 24, lineHeight: '30px', marginTop: 16, marginBottom: 12, color: mode === 'dark' ? saladPalette.lime : saladPalette.green },
-      h6: { fontWeight: 700, fontSize: 18, lineHeight: '24px', marginTop: 10, marginBottom: 10, color: mode === 'dark' ? saladPalette.lime : saladPalette.green },
+      h1: {
+        fontWeight: 700,
+        fontSize: 38,
+        lineHeight: '44px',
+        marginTop: 20,
+        marginBottom: 10,
+        color: mode === 'dark' ? saladPalette.lime : saladPalette.green,
+      },
+      h2: {
+        fontWeight: 700,
+        fontSize: 32,
+        lineHeight: '36px',
+        marginTop: 20,
+        marginBottom: 10,
+        color: mode === 'dark' ? saladPalette.lime : saladPalette.green,
+      },
+      h3: {
+        fontWeight: 700,
+        fontSize: 24,
+        lineHeight: '30px',
+        marginTop: 20,
+        marginBottom: 10,
+        color: mode === 'dark' ? saladPalette.lime : saladPalette.green,
+      },
+      h4: {
+        fontWeight: 700,
+        fontSize: 18,
+        lineHeight: '24px',
+        marginTop: 10,
+        marginBottom: 10,
+        color: mode === 'dark' ? saladPalette.lime : saladPalette.green,
+      },
+      h5: {
+        fontWeight: 700,
+        fontSize: 24,
+        lineHeight: '30px',
+        marginTop: 16,
+        marginBottom: 12,
+        color: mode === 'dark' ? saladPalette.lime : saladPalette.green,
+      },
+      h6: {
+        fontWeight: 700,
+        fontSize: 18,
+        lineHeight: '24px',
+        marginTop: 10,
+        marginBottom: 10,
+        color: mode === 'dark' ? saladPalette.lime : saladPalette.green,
+      },
       body1: { fontSize: 14, lineHeight: '20px', color: '#333' },
     },
     breakpoints: {
@@ -102,9 +152,8 @@ const createAppTheme = (mode) =>
 
 export default function Dashboard() {
   // Initialize theme from localStorage or system preference
-  
-  
-    const getInitialTheme = () => {
+
+  const getInitialTheme = () => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved;
 
@@ -190,20 +239,20 @@ export default function Dashboard() {
     if (!statsSummary?.gpu_unique_node_count) {
       return { labels: [], datasets: [] };
     }
-    
+
     const data = statsSummary.gpu_unique_node_count;
     const legendColors = ['#b2d530', '#9acc35', '#7bb82e', '#53a626', '#3d6b28', '#1f4f22'];
-    
+
     // Get all unique timestamps
     const allTimestamps = Array.from(
-      new Set(data.flatMap(groupObj => groupObj.values.map(v => v.ts)))
+      new Set(data.flatMap((groupObj) => groupObj.values.map((v) => v.ts))),
     ).sort();
-    
+
     // Convert to Chart.js format - backend already sorted by usage
     const datasets = data.map((groupObj, i) => ({
       label: groupObj.group,
-      data: allTimestamps.map(ts => {
-        const found = groupObj.values.find(v => v.ts === ts);
+      data: allTimestamps.map((ts) => {
+        const found = groupObj.values.find((v) => v.ts === ts);
         return found ? found.value : 0;
       }),
       backgroundColor: legendColors[i % legendColors.length],
@@ -211,7 +260,7 @@ export default function Dashboard() {
       borderWidth: 1,
       fill: true,
     }));
-    
+
     return { labels: allTimestamps, datasets };
   }, [statsSummary]);
 
@@ -351,11 +400,12 @@ export default function Dashboard() {
               style={{
                 padding: '4px 12px',
                 fontSize: '0.9rem',
-                background: loadingTimeWindow === opt.key
-                  ? '#666'
-                  : globalTimeWindow === opt.key
-                    ? saladPalette.green
-                    : 'transparent',
+                background:
+                  loadingTimeWindow === opt.key
+                    ? '#666'
+                    : globalTimeWindow === opt.key
+                      ? saladPalette.green
+                      : 'transparent',
                 color: '#fff',
                 border: '1px solid #999',
                 borderRadius: '4px',
@@ -451,20 +501,39 @@ export default function Dashboard() {
                   SaladCloud Network Statistics
                 </Typography>
               </Box>
-              <Paper elevation={0} sx={{ p: 3, bgcolor: theme.palette.background.paper, borderRadius: 3, border: 'none', boxShadow: 'none', width: '100%' }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  bgcolor: theme.palette.background.paper,
+                  borderRadius: 3,
+                  border: 'none',
+                  boxShadow: 'none',
+                  width: '100%',
+                }}
+              >
                 <Typography
                   variant="body1"
                   sx={{
                     color: theme.palette.text.primary,
                     textAlign: 'justify',
-                    fontSize: '1.08rem',
+                    fontSize: '1.0rem',
                     letterSpacing: 0.01,
                     lineHeight: 1.7,
                   }}
                 >
-                  This page provides summary statistics from SaladCloud’s testing on the Golem Network. These tests support a broader initiative to evaluate the use of the GLM token for facilitating compute transactions across SaladCloud.
-                  <br /><br />
-                  SaladCloud is a Web2 distributed cloud computing platform enabling customers to run workloads including text-to-image, text-to-video, molecular simulations, and zero-knowledge proofs. SaladCloud nodes are worldwide, as seen in the distribution of daily active SaladCloud nodes in the globe to the right in the full network. The data presented represents a subset of participating customers (requestors) and network nodes (providers), and includes test compute transactions executed on-chain using GLM.
+                  This page provides summary statistics from SaladCloud’s testing on the Golem
+                  Network. These tests support a broader initiative to evaluate the use of the GLM
+                  token for facilitating compute transactions across SaladCloud.
+                  <br />
+                  <br />
+                  SaladCloud is a Web2 distributed cloud computing platform enabling customers to
+                  run workloads including text-to-image, text-to-video, molecular simulations, and
+                  zero-knowledge proofs. SaladCloud nodes are worldwide, as seen in the distribution
+                  of daily active SaladCloud nodes in the globe to the right in the full network.
+                  The data presented represents a subset of participating customers (requestors) and
+                  network nodes (providers), and includes test compute transactions executed
+                  on-chain using GLM.
                 </Typography>
               </Paper>
             </Grid>
@@ -489,23 +558,7 @@ export default function Dashboard() {
             </Grid>
           </Grid>
 
-          {/* Network Content */}
-          <Paper
-            elevation={2}
-            sx={{
-              pt: 1,
-              mb: 4,
-              borderRadius: 4,
-              px: 4,
-              pb: 4,
-              bgcolor: theme.palette.background.paper,
-              border: `1px solid ${theme.palette.mode === 'dark' ? '#333' : '#e0e0e0'}`,
-              backgroundImage: 'none',
-              maxWidth: '96vw',
-              mx: 'auto',
-            }}
-            className="w-block"
-          >
+          <StyledPaper>
             {/* Transactions Table */}
             <Box sx={{ width: '100%' }}>
               <Typography
@@ -524,83 +577,14 @@ export default function Dashboard() {
               />
               <TransactionsTable data={transactions} />
             </Box>
+          </StyledPaper>
+          <StyledPaper>
             <Typography
               variant="h5"
               sx={{ mt: 2, mb: 0.5, color: theme.palette.primary.main, fontSize: '1.25rem' }}
               className="w-block"
             >
               Overall Usage
-            </Typography>
-            <Box
-              sx={{
-                width: '90%',
-                borderBottom: `2px solid ${theme.palette.mode === 'dark' ? 'rgba(219,243,193,0.3)' : 'rgb(219,243,193)'}`,
-                mb: 1,
-              }}
-              className="w-clearfix"
-            />
-            <Grid container spacing={3} justifyContent="center">
-              {statsSummary ? (
-                <>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TrendChart
-                      id="trend-total-invoice-amount"
-                      title="Fees ($)"
-                      trendWindow={globalTimeWindow}
-                      setTrendWindow={() => {}}
-                      trendData={
-                        statsSummary.total_invoice_amount?.map((d) => ({ x: d.ts, y: d.value })) ||
-                        []
-                      }
-                      unit="$"
-                      unitType="front"
-                      isLoading={isLoading}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TrendChart
-                      id="trend-total-transaction-count"
-                      title="Total Transaction Count (tx)"
-                      trendWindow={globalTimeWindow}
-                      setTrendWindow={() => {}}
-                      trendData={
-                        statsSummary.total_transaction_count?.map((d) => ({
-                          x: d.ts,
-                          y: d.value,
-                        })) || []
-                      }
-                      unit="tx"
-                      unitType="below"
-                      isLoading={isLoading}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TrendChart
-                      id="trend-total-time-seconds"
-                      title="Total Compute Time (sec)"
-                      trendWindow={globalTimeWindow}
-                      setTrendWindow={() => {}}
-                      trendData={
-                        statsSummary.total_time_seconds?.map((d) => ({ x: d.ts, y: d.value })) || []
-                      }
-                      unit="sec"
-                      unitType="below"
-                      isLoading={isLoading}
-                    />
-                  </Grid>
-                </>
-              ) : (
-                <Typography variant="body2" color="textSecondary">
-                  Loading...
-                </Typography>
-              )}
-            </Grid>
-            <Typography
-              variant="h5"
-              sx={{ mt: 2, mb: 0.5, color: theme.palette.primary.main, fontSize: '1.25rem' }}
-              className="w-block"
-            >
-              Available in Test
             </Typography>
             <Box
               sx={{
@@ -629,28 +613,47 @@ export default function Dashboard() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TrendChart
-                      id="unique_node_ram"
-                      title="Unique Node RAM (GB)"
+                      id="trend-total-invoice-amount"
+                      title="Fees ($)"
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       trendData={
-                        statsSummary.unique_node_ram?.map((d) => ({ x: d.ts, y: d.value })) || []
+                        statsSummary.total_invoice_amount?.map((d) => ({ x: d.ts, y: d.value })) ||
+                        []
                       }
-                      unit="GB"
+                      unit="$"
+                      unitType="front"
+                      isLoading={isLoading}
+                    />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TrendChart
+                      id="trend-total-time-seconds"
+                      title="Total Compute Time (sec)"
+                      trendWindow={globalTimeWindow}
+                      setTrendWindow={() => {}}
+                      trendData={
+                        statsSummary.total_time_seconds?.map((d) => ({ x: d.ts, y: d.value })) || []
+                      }
+                      unit="sec"
                       unitType="below"
                       isLoading={isLoading}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TrendChart
-                      id="unique_node_cpu"
-                      title="Unique Node CPU (CPU cores)"
+                      id="trend-total-transaction-count"
+                      title="Total Transaction Count (tx)"
                       trendWindow={globalTimeWindow}
                       setTrendWindow={() => {}}
                       trendData={
-                        statsSummary.unique_node_cpu?.map((d) => ({ x: d.ts, y: d.value })) || []
+                        statsSummary.total_transaction_count?.map((d) => ({
+                          x: d.ts,
+                          y: d.value,
+                        })) || []
                       }
-                      unit="CPU cores"
+                      unit="tx"
                       unitType="below"
                       isLoading={isLoading}
                     />
@@ -662,6 +665,8 @@ export default function Dashboard() {
                 </Typography>
               )}
             </Grid>
+          </StyledPaper>
+          <StyledPaper>
             {/* Compute Resources Utilized Section */}
             <Typography
               variant="h5"
@@ -679,45 +684,8 @@ export default function Dashboard() {
               className="w-clearfix"
             />
             <Grid container spacing={3} justifyContent="center">
-              <Grid size={{ xs: 12, md: 6 }}>
-                {statsSummary ? (
-                  <StackedChart
-                    id="gpuStackedChart"
-                    title="Utilized GPUs by Model"
-                    trendWindow={globalTimeWindow}
-                    setTrendWindow={() => {}}
-                    chartData={gpuModelStackedData}
-                    labels={gpuModelStackedData.groupLabels}
-                    unit="nodes"
-                  />
-                ) : (
-                  <Typography variant="body2" color="textSecondary">
-                    Loading...
-                  </Typography>
-                )}
-                <Typography
-                  variant="body2"
-                  color="textSecondary"
-                  sx={{ textAlign: 'center', mt: 1 }}
-                />
-              </Grid>
-              {/* VRAM StackedChart removed until data is available */}
               {statsSummary ? (
                 <>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TrendChart
-                      id="trend-total-cpu-hours"
-                      title="Total CPU Hours (CPU-hr)"
-                      trendWindow={globalTimeWindow}
-                      setTrendWindow={() => {}}
-                      trendData={
-                        statsSummary.total_cpu_hours?.map((d) => ({ x: d.ts, y: d.value })) || []
-                      }
-                      unit="CPU-hr"
-                      unitType="below"
-                      isLoading={isLoading}
-                    />
-                  </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TrendChart
                       id="trend-total-ram-hours"
@@ -732,6 +700,31 @@ export default function Dashboard() {
                       isLoading={isLoading}
                     />
                   </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TrendChart
+                      id="trend-total-cpu-hours"
+                      title="Total CPU Hours (CPU-hr)"
+                      trendWindow={globalTimeWindow}
+                      setTrendWindow={() => {}}
+                      trendData={
+                        statsSummary.total_cpu_hours?.map((d) => ({ x: d.ts, y: d.value })) || []
+                      }
+                      unit="CPU-hr"
+                      unitType="below"
+                      isLoading={isLoading}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <StackedChart
+                      id="gpuStackedChart"
+                      title="Utilized GPUs by Model"
+                      trendWindow={globalTimeWindow}
+                      setTrendWindow={() => {}}
+                      chartData={gpuModelStackedData}
+                      labels={gpuModelStackedData.groupLabels}
+                      unit="nodes"
+                    />
+                  </Grid>
                 </>
               ) : (
                 <Typography variant="body2" color="textSecondary">
@@ -739,7 +732,7 @@ export default function Dashboard() {
                 </Typography>
               )}
             </Grid>
-          </Paper>
+          </StyledPaper>
         </Container>
       </Box>
     </ThemeProvider>
