@@ -140,7 +140,25 @@ export function TrendChart({ id, title, trendWindow, trendData, unit, unitType, 
         chartRef.current = null;
       }
     };
-  }, [id, trendData, trendWindow, title, isDark]);
+  }, [id, trendData, trendWindow, title]);
+
+  // Update colors when theme changes without reloading chart
+  React.useEffect(() => {
+    if (chartRef.current) {
+      const chart = chartRef.current;
+      const isDark = theme.palette.mode === 'dark';
+      chart.options.scales.x.ticks.color = isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.7)';
+      chart.options.scales.x.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+      chart.options.scales.y.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+      chart.options.scales.y.ticks.color = isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.7)';
+      if (chart.options.plugins.tooltip) {
+        chart.options.plugins.tooltip.backgroundColor = isDark ? 'rgba(0,0,0,0.8)' : '#fff';
+        chart.options.plugins.tooltip.titleColor = isDark ? '#fff' : '#000';
+        chart.options.plugins.tooltip.bodyColor = isDark ? '#fff' : '#000';
+      }
+      chart.update('none');
+    }
+  }, [theme.palette.mode]);
 
   // Value display logic
   const lastValue = trendData.length > 0 ? trendData[trendData.length - 1].y : null;
@@ -417,7 +435,15 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false }, title: { display: false } },
+            plugins: {
+              legend: { display: false },
+              title: { display: false },
+              tooltip: {
+                backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : '#fff',
+                titleColor: isDark ? '#fff' : '#000',
+                bodyColor: isDark ? '#fff' : '#000',
+              },
+            },
             elements: { point: { radius: 0, hoverRadius: 0, borderWidth: 0 } },
             scales: {
               x: {
@@ -465,6 +491,25 @@ export function StackedChart({ id, title, trendWindow, setTrendWindow, labels, c
       if (ctx && ctx._chartInstance) ctx._chartInstance.destroy();
     };
   }, [id, internalChartData]); // Only update when data actually changes
+
+  // Update colors when theme changes without reloading chart
+  React.useEffect(() => {
+    const ctx = document.getElementById(id);
+    if (ctx && ctx._chartInstance) {
+      const chart = ctx._chartInstance;
+      const isDark = theme.palette.mode === 'dark';
+      chart.options.scales.x.ticks.color = isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)';
+      chart.options.scales.x.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+      chart.options.scales.y.grid.color = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+      chart.options.scales.y.ticks.color = isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)';
+      if (chart.options.plugins.tooltip) {
+        chart.options.plugins.tooltip.backgroundColor = isDark ? 'rgba(0,0,0,0.8)' : '#fff';
+        chart.options.plugins.tooltip.titleColor = isDark ? '#fff' : '#000';
+        chart.options.plugins.tooltip.bodyColor = isDark ? '#fff' : '#000';
+      }
+      chart.update('none');
+    }
+  }, [theme.palette.mode, id, internalChartData]);
 
   // Time window display mapping
   const timeLabels = {
