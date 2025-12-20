@@ -72,14 +72,15 @@ export default function MetricsBar({ metrics = [] }) {
             key={j}
             sx={{
               textAlign: 'center',
-              minWidth: { xs: 120, sm: 140, md: 160 },
-              maxWidth: { xs: 180, sm: 220, md: 260 },
-              flex: '1 1 140px',
+              minWidth: 'min-content',
+              maxWidth: '100%',
+              flex: '0 1 auto',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               mb: 1,
+              overflow: 'hidden',
             }}
           >
             <Typography
@@ -88,8 +89,10 @@ export default function MetricsBar({ metrics = [] }) {
               sx={{
                 color,
                 lineHeight: 1.05,
-                fontSize: { xs: '2.7rem', sm: '4rem', md: '5rem' },
+                fontSize: { xs: '2.2rem', sm: '3.2rem', md: '4.2rem' },
                 whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               {unitType === 'front' && m.unit && (
@@ -108,7 +111,7 @@ export default function MetricsBar({ metrics = [] }) {
                   component="span"
                   variant="subtitle1"
                   fontWeight={600}
-                  sx={{ color, fontSize: { xs: '1.2rem', sm: '1.5rem', md: '2rem' }, ml: 0.5 }}
+                  sx={{ color, fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.7rem' }, ml: 0.5 }}
                 >
                   {m.unit}
                 </Typography>
@@ -118,7 +121,7 @@ export default function MetricsBar({ metrics = [] }) {
               variant="subtitle1"
               sx={{
                 opacity: 0.95,
-                fontSize: { xs: '1rem', sm: '1.2rem', md: '1.25rem' },
+                fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.2rem' },
                 fontWeight: 500,
                 mt: 0.5,
                 wordBreak: 'break-word',
