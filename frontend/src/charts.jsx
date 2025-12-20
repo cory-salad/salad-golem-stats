@@ -464,14 +464,18 @@ export function StackedChart({
   const [isNarrow, setIsNarrow] = React.useState(
     typeof window !== 'undefined' ? window.innerWidth < 1400 : false,
   );
+  const [legendBelow, setLegendBelow] = React.useState(
+    typeof window !== 'undefined' ? window.innerWidth < 1100 : false,
+  );
 
   // Legend colors for stacked chart - 6 shades of green from lightest to darkest (since sorted highest to lowest)
   const legendColors = ['#b2d530', '#9acc35', '#7bb82e', '#53a626', '#3d6b28', '#1f4f22'];
 
-  // Responsive legend position
+  // Responsive legend position and chart width
   React.useEffect(() => {
     function handleResize() {
       setIsNarrow(window.innerWidth < 1400);
+      setLegendBelow(window.innerWidth < 1100);
     }
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -537,19 +541,46 @@ export function StackedChart({
     if (maxVal >= 1e3) return { title: 'Thousands', factor: 1e3, suffix: 'k' };
     return { title: '', factor: 1, suffix: '' };
   }
-  const yMax = internalChartData
-    ? Math.max(...internalChartData.datasets.flatMap((ds) => ds.data).map((d) => Math.abs(d)))
-    : 0;
+  const yMax =
+    internalChartData && internalChartData.datasets.length > 0
+      ? Math.max(
+          ...internalChartData.datasets[0].data.map((_, timeIndex) =>
+            // Sum all series values at this time point
+            internalChartData.datasets.reduce(
+              (sum, ds) => sum + Math.abs(ds.data[timeIndex]?.y || 0),
+              0,
+            ),
+          ),
+        )
+      : 0;
   const yFormat = getYAxisFormat(yMax);
+
+  // Debug: Log the max values to see why scales differ
+  React.useEffect(() => {
+    if (yMax > 0) {
+      console.log(
+        `Chart ${id}: stacked yMax = ${yMax.toLocaleString()}, scale = ${yFormat.suffix || 'raw'}`,
+      );
+    }
+  }, [yMax, yFormat.suffix, id]);
 
   // Render chart when data changes
   React.useEffect(() => {
     const ctx = document.getElementById(id);
     if (!ctx) return;
 
-    const yMax = internalChartData
-      ? Math.max(...internalChartData.datasets.flatMap((ds) => ds.data.map((d) => Math.abs(d.y))))
-      : 0;
+    const yMax =
+      internalChartData && internalChartData.datasets.length > 0
+        ? Math.max(
+            ...internalChartData.datasets[0].data.map((_, timeIndex) =>
+              // Sum all series values at this time point
+              internalChartData.datasets.reduce(
+                (sum, ds) => sum + Math.abs(ds.data[timeIndex]?.y || 0),
+                0,
+              ),
+            ),
+          )
+        : 0;
     const yFormat = getYAxisFormat(yMax);
 
     if (!chartRef.current) {
@@ -646,10 +677,17 @@ export function StackedChart({
         chart.options.scales.y.ticks.callback = function (value) {
           if (yFormat.factor === 1) return value.toLocaleString();
           const v = value / yFormat.factor;
-          if (v % 1 === 0) return v + yFormat.suffix;
+          if (v % 1 === 0) {
+            // Add commas for large whole numbers
+            return v >= 1000 ? v.toLocaleString() + yFormat.suffix : v + yFormat.suffix;
+          }
           if (Math.abs(v) < 10) return v.toFixed(2).replace(/\.?0+$/, '') + yFormat.suffix;
           if (Math.abs(v) < 100) return v.toFixed(1).replace(/\.?0+$/, '') + yFormat.suffix;
-          return Math.round(v) + yFormat.suffix;
+          // Add commas for large rounded numbers
+          const rounded = Math.round(v);
+          return rounded >= 1000
+            ? rounded.toLocaleString() + yFormat.suffix
+            : rounded + yFormat.suffix;
         };
         chart.update('none');
       }
@@ -727,20 +765,26 @@ export function StackedChart({
       )}
       <Box
         display="flex"
-        flexDirection={{ xs: 'column', sm: 'row' }}
+        flexDirection={legendBelow ? 'column' : 'row'}
         alignItems="center"
         justifyContent="flex-start"
         sx={{ width: '100%', maxWidth: 800, mb: 1, mx: 'auto' }}
         className="w-clearfix"
       >
-        <Box sx={{ width: { xs: '100%', sm: 460 }, minWidth: 260 }} className="w-inline-block">
+        <Box
+          sx={{
+            width: isNarrow ? { xs: '100%', sm: 360 } : { xs: '100%', sm: 460 },
+            minWidth: 260,
+          }}
+          className="w-inline-block"
+        >
           <canvas
             id={id}
             width="100%"
             height={plotHeight}
             style={{
               width: '100%',
-              maxWidth: 460,
+              maxWidth: isNarrow ? 360 : 460,
               minWidth: 260,
               height: plotHeight,
               display: 'block',
@@ -748,7 +792,7 @@ export function StackedChart({
           ></canvas>
         </Box>
         {/* Legend/value display: right or below chart depending on width */}
-        {!isNarrow && (
+        {!legendBelow && (
           <Box sx={{ ml: 1.5, mt: 0, minWidth: 0, flex: 1 }} className="w-inline-block">
             <Typography
               variant="caption"
@@ -757,45 +801,94 @@ export function StackedChart({
               {trendWindow === 'day' ? 'last hour:' : 'last day:'}
             </Typography>
             {currents.length > 0 && internalChartData && internalChartData.datasets
-              ? currents.map((val, idx) => (
-                  <Box
-                    key={idx}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="flex-start"
-                    sx={{ mb: 1 }}
-                    className="w-inline-block"
-                  >
+              ? (() => {
+                  // Determine the scale based on majority voting of what each value would naturally use
+                  const scales = currents.map((val) =>
+                    val >= 1e9 ? 'B' : val >= 1e6 ? 'M' : val >= 1000 ? 'k' : 'raw',
+                  );
+                  const scaleCounts = { raw: 0, k: 0, M: 0, B: 0 };
+                  scales.forEach((s) => scaleCounts[s]++);
+
+                  // Use the scale that the majority of values would use
+                  const majorityScale = Object.keys(scaleCounts).reduce((a, b) =>
+                    scaleCounts[a] > scaleCounts[b] ? a : b,
+                  );
+
+                  const scale =
+                    majorityScale === 'B'
+                      ? { factor: 1e9, suffix: 'B' }
+                      : majorityScale === 'M'
+                        ? { factor: 1e6, suffix: 'M' }
+                        : majorityScale === 'k'
+                          ? { factor: 1000, suffix: 'k' }
+                          : { factor: 1, suffix: '' };
+
+                  return currents.map((val, idx) => (
                     <Box
+                      key={idx}
                       sx={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: '50%',
-                        bgcolor: legendColors[idx % legendColors.length],
-                        display: 'inline-block',
-                        mr: 1,
-                        border: '1px solid #bbb',
-                      }}
-                    />
-                    <Typography
-                      variant="body2"
-                      component="span"
-                      sx={{
-                        color: isDark ? 'rgb(178,213,48)' : 'rgb(31, 79, 34)',
-                        fontSize: '0.875rem',
-                        mr: 1,
-                        fontWeight: 400,
+                        mb: 1,
+                        display: 'grid',
+                        gridTemplateColumns: '12px auto auto 1fr',
+                        gap: 1,
+                        alignItems: 'center',
                       }}
                     >
-                      <span style={{ fontWeight: 700 }}>{val}</span>{' '}
-                      {legendLabel(internalChartData.datasets[idx]?.label)}
-                    </Typography>
-                  </Box>
-                ))
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          bgcolor: legendColors[idx % legendColors.length],
+                          border: '1px solid #bbb',
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        component="span"
+                        sx={{
+                          color: isDark ? 'rgb(178,213,48)' : 'rgb(31, 79, 34)',
+                          fontSize: '0.875rem',
+                          fontWeight: 700,
+                          textAlign: 'right',
+                          minWidth: '4.5em',
+                        }}
+                      >
+                        {(() => {
+                          if (scale.factor === 1) {
+                            return Math.round(val).toLocaleString();
+                          } else {
+                            const scaledVal = val / scale.factor;
+                            // Add commas to large scaled values (>= 1000)
+                            if (scaledVal >= 1000) {
+                              return `${scaledVal.toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: scaledVal % 1 === 0 ? 0 : 1 })}${scale.suffix}`;
+                            }
+                            return `${scaledVal.toFixed(1).replace(/\.0$/, '')}${scale.suffix}`;
+                          }
+                        })()}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        component="span"
+                        sx={{
+                          color: isDark ? 'rgb(178,213,48)' : 'rgb(31, 79, 34)',
+                          fontSize: '0.875rem',
+                          fontWeight: 400,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          maxWidth: '120px',
+                        }}
+                      >
+                        {legendLabel(internalChartData.datasets[idx]?.label)}
+                      </Typography>
+                    </Box>
+                  ));
+                })()
               : '--'}
           </Box>
         )}
-        {isNarrow && (
+        {legendBelow && (
           <Box
             sx={{
               width: '100%',
@@ -811,41 +904,91 @@ export function StackedChart({
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
               {currents.length > 0 && internalChartData && internalChartData.datasets
-                ? currents.map((val, idx) => (
-                    <Box
-                      key={idx}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      sx={{ mb: 1, mx: 2 }}
-                      className="w-inline-block"
-                    >
+                ? (() => {
+                    // Determine the scale based on majority voting of what each value would naturally use
+                    const scales = currents.map((val) =>
+                      val >= 1e9 ? 'B' : val >= 1e6 ? 'M' : val >= 1000 ? 'k' : 'raw',
+                    );
+                    const scaleCounts = { raw: 0, k: 0, M: 0, B: 0 };
+                    scales.forEach((s) => scaleCounts[s]++);
+
+                    // Use the scale that the majority of values would use
+                    const majorityScale = Object.keys(scaleCounts).reduce((a, b) =>
+                      scaleCounts[a] > scaleCounts[b] ? a : b,
+                    );
+
+                    const scale =
+                      majorityScale === 'B'
+                        ? { factor: 1e9, suffix: 'B' }
+                        : majorityScale === 'M'
+                          ? { factor: 1e6, suffix: 'M' }
+                          : majorityScale === 'k'
+                            ? { factor: 1000, suffix: 'k' }
+                            : { factor: 1, suffix: '' };
+
+                    return currents.map((val, idx) => (
                       <Box
+                        key={idx}
                         sx={{
-                          width: 12,
-                          height: 12,
-                          borderRadius: '50%',
-                          bgcolor: legendColors[idx % legendColors.length],
-                          display: 'inline-block',
-                          mr: 1,
-                          border: '1px solid #bbb',
-                        }}
-                      />
-                      <Typography
-                        variant="body2"
-                        component="span"
-                        sx={{
-                          color: isDark ? 'rgb(178,213,48)' : 'rgb(31, 79, 34)',
-                          fontSize: '0.875rem',
-                          mr: 1,
-                          fontWeight: 400,
+                          mb: 1,
+                          mx: 2,
+                          display: 'grid',
+                          gridTemplateColumns: '12px auto auto',
+                          gap: 1,
+                          alignItems: 'center',
                         }}
                       >
-                        <span style={{ fontWeight: 700 }}>{val}</span>{' '}
-                        {legendLabel(internalChartData.datasets[idx]?.label)}
-                      </Typography>
-                    </Box>
-                  ))
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            bgcolor: legendColors[idx % legendColors.length],
+                            border: '1px solid #bbb',
+                          }}
+                        />
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          sx={{
+                            color: isDark ? 'rgb(178,213,48)' : 'rgb(31, 79, 34)',
+                            fontSize: '0.875rem',
+                            fontWeight: 700,
+                            textAlign: 'right',
+                            minWidth: '4.5em',
+                          }}
+                        >
+                          {(() => {
+                            if (scale.factor === 1) {
+                              return Math.round(val).toLocaleString();
+                            } else {
+                              const scaledVal = val / scale.factor;
+                              // Add commas to large scaled values (>= 1000)
+                              if (scaledVal >= 1000) {
+                                return `${scaledVal.toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: scaledVal % 1 === 0 ? 0 : 1 })}${scale.suffix}`;
+                              }
+                              return `${scaledVal.toFixed(1).replace(/\.0$/, '')}${scale.suffix}`;
+                            }
+                          })()}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          sx={{
+                            color: isDark ? 'rgb(178,213,48)' : 'rgb(31, 79, 34)',
+                            fontSize: '0.875rem',
+                            fontWeight: 400,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '100px',
+                          }}
+                        >
+                          {legendLabel(internalChartData.datasets[idx]?.label)}
+                        </Typography>
+                      </Box>
+                    ));
+                  })()
                 : '--'}
             </Box>
           </Box>
