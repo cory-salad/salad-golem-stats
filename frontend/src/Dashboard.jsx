@@ -492,6 +492,34 @@ export default function Dashboard() {
             display: 'block',
           }}
         >
+          {/* MetricsBar: summary metrics above network activity */}
+          {statsSummary && (
+            <MetricsBar
+              metrics={[
+                {
+                  value: statsSummary.unique_node_count?.at(-1)?.y ?? 0,
+                  unit: '',
+                  label: 'Active nodes (last week)',
+                },
+                {
+                  value: statsSummary.total_invoice_amount?.at(-1)?.y ?? 0,
+                  unit: '$',
+                  label: 'Fees paid (last week)',
+                },
+                {
+                  value: statsSummary.total_time_seconds?.at(-1)?.y ?? 0,
+                  unit: 'sec',
+                  label: 'Compute time (last week)',
+                },
+                {
+                  value: statsSummary.total_transaction_count?.at(-1)?.y ?? 0,
+                  unit: '',
+                  label: 'Transactions (last week)',
+                },
+                // Add more metrics as needed
+              ]}
+            />
+          )}
           {/* Dashboard Title and Intro */}
           <Grid container spacing={4} sx={{ alignItems: 'stretch' }} direction="row">
             <Grid
@@ -579,34 +607,6 @@ export default function Dashboard() {
             </Box>
           </StyledPaper>
           <StyledPaper>
-            {/* MetricsBar: summary metrics above network activity */}
-            {statsSummary && (
-              <MetricsBar
-                metrics={[
-                  {
-                    value: statsSummary.unique_node_count?.at(-1)?.y ?? 0,
-                    unit: '',
-                    label: 'Active nodes (last week)',
-                  },
-                  {
-                    value: statsSummary.total_invoice_amount?.at(-1)?.y ?? 0,
-                    unit: '$',
-                    label: 'Fees paid (last week)',
-                  },
-                  {
-                    value: statsSummary.total_time_seconds?.at(-1)?.y ?? 0,
-                    unit: 'sec',
-                    label: 'Compute time (last week)',
-                  },
-                  {
-                    value: statsSummary.total_transaction_count?.at(-1)?.y ?? 0,
-                    unit: '',
-                    label: 'Transactions (last week)',
-                  },
-                  // Add more metrics as needed
-                ]}
-              />
-            )}
             <StyledHeading>Network Activity</StyledHeading>
             <Grid container spacing={3} justifyContent="center">
               {statsSummary ? (
