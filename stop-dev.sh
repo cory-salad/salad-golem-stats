@@ -22,6 +22,10 @@ else
   echo "No frontend process found."
 fi
 
+echo "Stopping Windows-side node.exe processes..."
+powershell.exe -NoProfile -Command \
+  "Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force"
+
 # Stop Postgres Docker
 cd db
 if docker-compose ps | grep -q 'dev-postgres'; then
@@ -30,3 +34,6 @@ if docker-compose ps | grep -q 'dev-postgres'; then
 else
   echo "No Postgres Docker container running."
 fi
+
+#  Get-Process node | Select-Object Id, CPU, StartTime, Path
+# taskkill /IM node.exe /F

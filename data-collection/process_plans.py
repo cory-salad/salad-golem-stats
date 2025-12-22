@@ -2,8 +2,11 @@ import psycopg2
 from dotenv import load_dotenv
 import sqlite3
 import os
+import sys
 
 load_dotenv()
+
+filter_organizations = []
 
 
 def get_db_conn():
@@ -62,8 +65,13 @@ def insert_daily_distinct_counts(data):
 
 
 # Construct the path to the database
-db_path = os.path.join(".", "data", "plans.db")
-db_path = os.path.abspath(db_path)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+db_path = os.path.join(script_dir, "plans.db")
+
+# Check if the database file exists
+if not os.path.isfile(db_path):
+    print(f"Database file not found at {db_path}")
+    sys.exit(1)
 
 conn = sqlite3.connect(db_path)
 
@@ -84,9 +92,32 @@ for table in tables:
     for col in columns:
         # col[1] is the column name, col[2] is the type
         print(f"    - {col[1]} ({col[2]})")
+    # Print 5 example rows from node_plan
+    print("\n5 example rows from node_plan:")
+    try:
+        cursor.execute("SELECT * FROM node_plan LIMIT 5;")
+        example_rows = cursor.fetchall()
+        for row in example_rows:
+            print(row)
+    except Exception as e:
+        print(f"Error fetching example rows: {e}")
+
+# Pause for user review
+user_input = input("\nPress Enter to continue or 'q' to stop: ")
+if user_input.strip().lower() == "q":
+    print("Exiting as requested.")
+    sys.exit(0)
+
 
 print("\n Resource Usage in node_plan:")
-query = """
+
+# Build the organization filter clause
+org_filter_clause = ""
+if filter_organizations:
+    org_list = "', '".join(filter_organizations)
+    org_filter_clause = f"AND org_name IN ('{org_list}')"
+
+query = f"""
 	WITH base AS (
 		SELECT
 			strftime('%Y-%m-%d %H:00:00', stop_at / 1000, 'unixepoch') AS hour,
@@ -97,6 +128,7 @@ query = """
 			ram,
 			cpu
 		FROM node_plan
+		WHERE 1=1 {org_filter_clause}
 	),
 	base_with_resource_hours AS (
 		SELECT	
@@ -173,7 +205,9 @@ try:
     #### THIS WOULD BE BETTER WITH NODE WSL RAM AND CPU!!!!
 
     print("\nDaily distinct by GPU class (with max total RAM/CPU):")
-    distinct_day_query = """
+
+    # Build the organization filter clause for daily query
+    daily_query = f"""
 		WITH per_node_day AS (
 			SELECT
 				strftime('%Y-%m-%d', stop_at / 1000, 'unixepoch') AS day,
@@ -182,6 +216,7 @@ try:
 				MAX(ram) AS max_ram,
 				MAX(cpu) AS max_cpu
 			FROM node_plan
+			WHERE 1=1 {org_filter_clause}
 			GROUP BY day, node_id, gpu_group
 		),
 		all_nodes AS (
@@ -217,7 +252,7 @@ try:
 		ORDER BY day, gpu_group;
 	"""
 
-    cursor.execute(distinct_day_query)
+    cursor.execute(daily_query)
     distinct_day_results = cursor.fetchall()
     for row in distinct_day_results[-50:]:
         print(
@@ -240,7 +275,8 @@ try:
 
     # Compute and print sum of max(ram) and max(cpu) per node per day, grouped by gpu_group
     print("\nHourly sum of max RAM and CPU per node, by group:")
-    distinct_hour_query = """
+
+    distinct_hour_query = f"""
 		WITH per_node_hour AS (
 			SELECT
 				strftime('%Y-%m-%d %H:00:00', stop_at / 1000, 'unixepoch') AS hour,
@@ -249,6 +285,7 @@ try:
 				MAX(ram) AS max_ram,
 				MAX(cpu) AS max_cpu
 			FROM node_plan
+			WHERE 1=1 {org_filter_clause}
 			GROUP BY hour, node_id, gpu_group
 		),
 		all_nodes AS (

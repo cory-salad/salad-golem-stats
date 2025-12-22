@@ -15,13 +15,6 @@ def main():
     # Load .env variables
     load_dotenv()  # reads .env from current directory
 
-    # Access variables
-    db_user = os.getenv("POSTGRES_USER")
-    db_password = os.getenv("POSTGRES_PASSWORD")
-    db_name = os.getenv("POSTGRES_DB")
-    db_host = os.getenv("POSTGRES_HOST", "localhost")  # default localhost
-    db_port = int(os.getenv("POSTGRES_PORT", 5432))  # default 5432
-
     conn = psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
@@ -41,8 +34,6 @@ def main():
 
     min_sel_ver_num = int(os.getenv("MIN_SEL"))
 
-    LIMIT = 0
-
     def get_database(dbname=mongo_name):
 
         CONNECTION_STRING = f"mongodb+srv://{mongo_user}:{mongo_password}@{mongo_url}/"
@@ -56,7 +47,7 @@ def main():
     ##################
     ts = (datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-    date_cutoff = (datetime.now(timezone.utc) - timedelta(hours=2)).strftime(
+    date_cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime(
         "%Y-%m-%dT%H:%M:%S.%fZ"
     )
 
@@ -223,143 +214,9 @@ def main():
             running_min_cpu += (workload.get("min_cpu", 0) or 0) / 1000
             running_min_ram += (workload.get("min_ram", 0) or 0) / (1024**1)
 
-    # City and country counts
-    city_counter = Counter()
-    country_counter = Counter()
-    for node in node_list:
-        city = node.get("ip", {}).get("city", None)
-        country = node.get("ip", {}).get("country_code", None)
-        if city:
-            city_counter[city] += 1
-        if country:
-            country_counter[country] += 1
-
-    # Process to lat / long
-    # Geocode cache file
-    GEOCODE_CITY_CACHE_PATH = Path("./data/city_geocode_cache.json")
-    if GEOCODE_CITY_CACHE_PATH.exists():
-        with open(GEOCODE_CITY_CACHE_PATH, "r", encoding="utf-8") as f:
-            geocode_city_cache = json.load(f)
-    else:
-        geocode_city_cache = {}
-
-    GEOCODE_COUNTRY_CACHE_PATH = Path("./data/country_geocode_cache.json")
-    if GEOCODE_COUNTRY_CACHE_PATH.exists():
-        with open(GEOCODE_COUNTRY_CACHE_PATH, "r", encoding="utf-8") as f:
-            geocode_country_cache = json.load(f)
-    else:
-        geocode_country_cache = {}
-
-    def geocode_city(city_name):
-        if city_name in geocode_city_cache:
-            return geocode_city_cache[city_name]
-        if city_name == "N/A" or not city_name:
-            return None
-        # Use OpenStreetMap Nominatim API
-        url = f"https://nominatim.openstreetmap.org/search?city={city_name}&format=json&limit=1"
-        try:
-            resp = requests.get(url, headers={"User-Agent": "SaladCloudStats/1.0"})
-            if resp.status_code == 200:
-                data = resp.json()
-                if data:
-                    lat = float(data[0]["lat"])
-                    lon = float(data[0]["lon"])
-                    geocode_city_cache[city_name] = {"lat": lat, "lon": lon}
-                    time.sleep(2)  # Be polite to API
-                    return geocode_city_cache[city_name]
-        except Exception as e:
-            print(f"Geocoding error for {city_name}: {e}")
-        geocode_city_cache[city_name] = None
-        return None
-
-    def geocode_country_code(country_code):
-        if country_code in geocode_country_cache:
-            return geocode_country_cache[country_code]
-        if country_code == "N/A" or not country_code:
-            return None
-        # Use OpenStreetMap Nominatim API
-        url = f"https://nominatim.openstreetmap.org/search?country={country_code}&format=json&limit=1"
-        try:
-            resp = requests.get(url, headers={"User-Agent": "SaladCloudStats/1.0"})
-            if resp.status_code == 200:
-                data = resp.json()
-                if data:
-                    lat = float(data[0]["lat"])
-                    lon = float(data[0]["lon"])
-                    geocode_country_cache[country_code] = {"lat": lat, "lon": lon}
-                    time.sleep(2)  # Be polite to API
-                    return geocode_country_cache[country_code]
-        except Exception as e:
-            print(f"Geocoding error for {country_code}: {e}")
-        geocode_country_cache[country_code] = None
-        return None
-
-    # Prepare output with geocoding
-    output_rows_city = []
-    total_cities = len(city_counter)
-    print(f"Geocoding {total_cities} cities...")
-    for idx, (city, count) in enumerate(city_counter.items(), 1):
-        print(f"[{idx}/{total_cities}] Geocoding: {city}")
-        geo = geocode_city(city)
-        if geo:
-            output_rows_city.append(
-                {"city": city, "count": count, "lat": geo["lat"], "lon": geo["lon"]}
-            )
-        else:
-            output_rows_city.append(
-                {"city": city, "count": count, "lat": "", "lon": ""}
-            )
-    print("City geocoding complete.")
-
-    output_rows_country = []
-    total_countries = len(country_counter)
-    print(f"Geocoding {total_countries} countries...")
-    for idx, (country, count) in enumerate(country_counter.items(), 1):
-        print(f"[{idx}/{total_countries}] Geocoding: {country}")
-        geo = geocode_country_code(country)
-        if geo:
-            output_rows_country.append(
-                {
-                    "country": country,
-                    "count": count,
-                    "lat": geo["lat"],
-                    "lon": geo["lon"],
-                }
-            )
-        else:
-            output_rows_country.append(
-                {"country": country, "count": count, "lat": "", "lon": ""}
-            )
-    print("Country geocoding complete.")
-
-    # Update geocode caches
-    with open(GEOCODE_CITY_CACHE_PATH, "w", encoding="utf-8") as f:
-        json.dump(geocode_city_cache, f, ensure_ascii=False, indent=2)
-
-    with open(GEOCODE_COUNTRY_CACHE_PATH, "w", encoding="utf-8") as f:
-        json.dump(geocode_country_cache, f, ensure_ascii=False, indent=2)
-
     ################################
     # SAVE PROCESSED DATA
     ################################
-
-    # Write CSV with lat/lon
-    with open("./data/node_count_by_city.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["city", "count", "lat", "lon"])
-        writer.writeheader()
-        for row in output_rows_city:
-            writer.writerow({k: row.get(k, "") for k in writer.fieldnames})
-
-    # Save node count by country_code to a CSV file
-    with open(
-        "node_count_by_country.csv", "w", newline="", encoding="utf-8"
-    ) as f_country:
-        writer = csv.DictWriter(
-            f_country, fieldnames=["country", "count", "lat", "lon"]
-        )
-        writer.writeheader()
-        for row in output_rows_country:
-            writer.writerow({k: row.get(k, "") for k in writer.fieldnames})
 
     ######################
     # to database
@@ -410,75 +267,9 @@ def main():
                 ),
             )
 
-    def safe_float(val):
-        return float(val) if val not in ("", None) else None
-
-    def safe_float(val):
-        try:
-            return float(val)
-        except (TypeError, ValueError):
-            return None
-
-    skipped_cities = []
-    skipped_countries = []
-    with conn:
-        with conn.cursor() as cur:
-            for loc in output_rows_city:
-                lat = safe_float(loc["lat"])
-                lon = safe_float(loc["lon"])
-                if lat is not None and lon is not None:
-                    cur.execute(
-                        """
-                        INSERT INTO city_snapshots (ts, name, count, lat, long)
-                        VALUES (%s, %s, %s, %s, %s)
-                        ON CONFLICT (ts, name) DO UPDATE
-                        SET count = EXCLUDED.count,
-                            lat = EXCLUDED.lat,
-                            long = EXCLUDED.long
-                        """,
-                        (ts, loc["city"], loc["count"], lat, lon),
-                    )
-                else:
-                    skipped_cities.append(loc)
-            for loc in output_rows_country:
-                lat = safe_float(loc["lat"])
-                lon = safe_float(loc["lon"])
-                if lat is not None and lon is not None:
-                    cur.execute(
-                        """
-                        INSERT INTO country_snapshots (ts, name, count, lat, long)
-                        VALUES (%s, %s, %s, %s, %s)
-                        ON CONFLICT (ts, name) DO UPDATE
-                        SET count = EXCLUDED.count,
-                            lat = EXCLUDED.lat,
-                            long = EXCLUDED.long
-                        """,
-                        (ts, loc["country"], loc["count"], lat, lon),
-                    )
-                else:
-                    skipped_countries.append(loc)
-    conn.close()
-
-    if skipped_cities:
-        print("Skipped cities with missing coordinates:")
-        for loc in skipped_cities:
-            print(loc)
-    if skipped_countries:
-        print("Skipped countries with missing coordinates:")
-        for loc in skipped_countries:
-            print(loc)
-
     print(f"Total nodes: {total_nodes}")
 
 
 if __name__ == "__main__":
 
-    while True:
-        try:
-            print(f"[{datetime.now()}] Running ingest...")
-            main()
-            print("Done. Sleeping 2 hours...")
-        except Exception as e:
-            print("ERROR:", e)
-
-        time.sleep(2 * 60 * 60)
+    main()
