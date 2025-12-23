@@ -1,3 +1,8 @@
+/* Custom MenuItem hover for green background */
+.MuiMenuItem-root:hover, .MuiMenuItem-root.Mui-selected {
+  background-color: rgb(83,166,38) !important;
+  color: #fff !important;
+}
 
 /* Sortable header arrows */
 .sortable-header {
@@ -32,10 +37,7 @@
   transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em #64ff6caa);
 }
 
 @keyframes logo-spin {

@@ -175,11 +175,14 @@ export default function TransactionsTable() {
     };
     // Use MUI theme to reactively update arrow color
     const theme = useTheme();
-    const arrowColor = theme.palette.mode === 'dark' ? '#444' : '#ddd';
+    const [hover, setHover] = React.useState(false);
+    const arrowColor = hover ? 'rgb(83,166,38)' : theme.palette.mode === 'dark' ? '#444' : '#ddd';
     return (
       <span
         className={`sortable-header${isActive ? ' active' : ''}`}
         onClick={handleClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         style={{
           cursor: 'pointer',
           display: 'inline-flex',
@@ -212,6 +215,7 @@ export default function TransactionsTable() {
                 fontSize: '1.75em',
                 marginTop: '-0em',
                 marginBottom: '-.3em',
+                transition: 'color 0.2s',
               }}
             />
             <ArrowDropDownIcon
@@ -220,6 +224,7 @@ export default function TransactionsTable() {
                 fontSize: '1.75em',
                 marginBottom: '-00em',
                 marginTop: '-.3em',
+                transition: 'color 0.2s',
               }}
             />
           </span>
@@ -251,6 +256,12 @@ export default function TransactionsTable() {
             '.MuiOutlinedInput-notchedOutline': {
               borderColor:
                 theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'rgb(83,166,38) !important',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'rgb(83,166,38) !important',
             },
           })}
         >

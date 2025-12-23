@@ -447,6 +447,18 @@ export default function Dashboard() {
                 minWidth: '32px',
                 outline: 'none',
               }}
+              onMouseEnter={(e) => {
+                if (loadingTimeWindow !== opt.key && globalTimeWindow !== opt.key) {
+                  e.currentTarget.style.background = 'rgb(83,166,38)';
+                  e.currentTarget.style.color = '#fff';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (loadingTimeWindow !== opt.key && globalTimeWindow !== opt.key) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#fff';
+                }
+              }}
               onClick={() => {
                 setLoadingTimeWindow(opt.key);
                 setGlobalTimeWindow(opt.key);

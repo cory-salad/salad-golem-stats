@@ -266,7 +266,7 @@ def get_stats_summary(
         "unique_node_count",
         "total_transaction_count",
     ]
-    allowed_periods = ["day", "week", "month"]
+    allowed_periods = ["week", "two_weeks", "month"]
     if period not in allowed_periods:
         raise HTTPException(status_code=400, detail=f"Invalid period. Allowed: {allowed_periods}")
 
