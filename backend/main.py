@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import random
-
+from datetime import timezone
 
 load_dotenv()
 
@@ -49,8 +49,9 @@ except Exception as e:
     print(f"Warning: Could not load gpu_class_names at startup: {e}")
 
 
-def get_table_parameters(metric: str, period: str):
-    now = datetime.utcnow()
+def get_query_parameters(metric: str, period: str):
+
+    now = datetime.now(timezone.utc)
     if metric in [
         "total_time_seconds",
         "total_time_hours",
@@ -79,10 +80,13 @@ def get_table_parameters(metric: str, period: str):
         since = now - timedelta(days=1)
     elif period == "week":
         since = now - timedelta(weeks=1)
-    elif period == "twoweeks":
+    elif period == "two_weeks":
         since = now - timedelta(weeks=2)
     elif period == "month":
         since = now - timedelta(days=31)
+
+    if ts_col == "day":
+        since = since.replace(hour=0, minute=0, second=0, microsecond=0)
     return {"since": since, "table": table, "ts_col": ts_col}
 
 
@@ -91,7 +95,7 @@ def get_metrics_by_gpu(metric: str, period: str = "month", group_by: str = "gpu"
     # query for all the GPUs in the time range.
     # find the totals by GPU group
 
-    query_info = get_table_parameters(metric=metric, period=period)
+    query_info = get_query_parameters(metric=metric, period=period)
     table = query_info["table"]
     ts_col = query_info["ts_col"]
     since = query_info["since"]
@@ -213,7 +217,7 @@ def get_metrics(metric: str, period: str = "week", gpu: str = "all"):
     Allowed metrics: total_time_hours, total_invoice_amount, total_ram_hours, total_cpu_hours, total_transaction_count
     """
 
-    query_info = get_table_parameters(metric=metric, period=period)
+    query_info = get_query_parameters(metric=metric, period=period)
     table = query_info["table"]
     ts_col = query_info["ts_col"]
     since = query_info["since"]
@@ -244,8 +248,8 @@ def get_metrics(metric: str, period: str = "week", gpu: str = "all"):
 def get_stats_summary(
     period: str = Query(
         "week",
-        enum=["week", "twoweeks", "month"],
-        description="Time period: week, twoweeks, or month, default: day",
+        enum=["week", "two_weeks", "month"],
+        description="Time period: week, two_weeks, or month, default: day",
     ),
     gpu: str = Query(
         "all",
@@ -268,7 +272,7 @@ def get_stats_summary(
 
     results = {}
     for metric in metrics:
-        query_info = get_table_parameters(metric=metric, period=period)
+        query_info = get_query_parameters(metric=metric, period=period)
         table = query_info["table"]
         ts_col = query_info["ts_col"]
         since = query_info["since"]
@@ -298,8 +302,8 @@ def get_stats_summary(
 def assemble_metrics(
     period: str = Query(
         "week",
-        enum=["week", "twoweeks", "month"],
-        description="Time period: week, twoweeks, or month, default: week",
+        enum=["week", "two_weeks", "month"],
+        description="Time period: week, two_weeks, or month, default: week",
     ),
     gpu: str = Query(
         "all",
@@ -328,7 +332,7 @@ def assemble_metrics(
         "total_time_hours",
     ]
 
-    allowed_periods = ["week", "twoweeks", "month"]
+    allowed_periods = ["week", "two_weeks", "month"]
 
     if period not in allowed_periods:
         raise HTTPException(status_code=400, detail=f"Invalid period. Allowed: {allowed_periods}")
@@ -368,24 +372,23 @@ def get_city_counts():
 @app.get("/metrics/transactions")
 def get_transactions(
     limit: int = Query(10, ge=1, le=100),
-    start: Optional[str] = Query(None, description="Start datetime ISO8601 (default: 1 day ago)"),
-    end: Optional[str] = Query(None, description="End datetime ISO8601 (default: now)"),
+    cursor: Optional[str] = Query(
+        None, description="Cursor for pagination (ISO8601 timestamp, default: latest)"
+    ),
+    direction: str = Query(
+        "next", enum=["next", "prev"], description="Pagination direction: next or prev"
+    ),
 ):
     """
-    Returns a list of placeholder transaction records for demo/testing.
+    Returns a list of placeholder transaction records for demo/testing, with cursor-based pagination.
     """
-    # Parse start/end or use defaults
-    now = datetime.utcnow()
-    if end:
-        end_dt = datetime.fromisoformat(end)
-    else:
-        end_dt = now
-    if start:
-        start_dt = datetime.fromisoformat(start)
-    else:
-        start_dt = end_dt - timedelta(days=1)
+    now = datetime.now(timezone.utc)
+    # For demo, generate a fixed window of 7 days of fake transactions
+    window_days = 7
+    end_dt = now
+    start_dt = end_dt - timedelta(days=window_days)
 
-    # Generate placeholder transactions
+    # Generate a pool of fake transactions (sorted by timestamp descending)
     providers = [
         "0x0B220b82F3eA3B7F6d9A1D8ab58930C064A2b5Bf",
         "0xA1B2c3D4E5F678901234567890abcdef12345678",
@@ -403,15 +406,17 @@ def get_transactions(
         "0xdef9876543210abcdef1234567890abcdef1234567890abcdef1234567890cd",
     ]
 
-    transactions = []
-    total_seconds = int((end_dt - start_dt).total_seconds())
-    for i in range(limit):
-        # Random timestamp in range
-        ts_offset = random.randint(0, max(1, total_seconds))
-        ts = (start_dt + timedelta(seconds=ts_offset)).replace(microsecond=0)
+    # For demo, generate a large pool (e.g., 500) of fake transactions
+    total_fake = 500
+    all_transactions = []
+    for i in range(total_fake):
+        # Evenly distribute timestamps over the window
+        ts = (start_dt + timedelta(seconds=i * (window_days * 24 * 3600) // total_fake)).replace(
+            microsecond=0
+        )
         duration_minutes = random.randint(5, 120)
         duration = timedelta(minutes=duration_minutes)
-        transactions.append(
+        all_transactions.append(
             {
                 "ts": ts.isoformat(),
                 "provider_wallet": random.choice(providers),
@@ -425,15 +430,57 @@ def get_transactions(
                 "invoiced_dollar": round(random.uniform(0.1, 5.0), 2),
             }
         )
-    return {"transactions": transactions}
+    # Sort descending by timestamp (newest first)
+    all_transactions.sort(key=lambda x: x["ts"], reverse=True)
+
+    # Cursor logic
+    if cursor:
+        # Find the index of the transaction matching the cursor
+        try:
+            cursor_idx = next(i for i, tx in enumerate(all_transactions) if tx["ts"] == cursor)
+        except StopIteration:
+            cursor_idx = None
+    else:
+        cursor_idx = None
+
+    # Determine slice for pagination
+    if direction == "next":
+        if cursor_idx is None:
+            start_idx = 0
+        else:
+            start_idx = cursor_idx + 1
+        end_idx = start_idx + limit
+    else:  # direction == "prev"
+        if cursor_idx is None:
+            end_idx = limit
+        else:
+            end_idx = cursor_idx
+        start_idx = max(0, end_idx - limit)
+
+    page_transactions = all_transactions[start_idx:end_idx]
+
+    # Set next/prev cursors
+    next_cursor = (
+        page_transactions[-1]["ts"]
+        if page_transactions and end_idx < len(all_transactions)
+        else None
+    )
+    prev_cursor = page_transactions[0]["ts"] if page_transactions and start_idx > 0 else None
+
+    return {
+        "transactions": page_transactions,
+        "next_cursor": next_cursor,
+        "prev_cursor": prev_cursor,
+        "total": len(all_transactions),
+    }
 
 
 @app.get("/metrics/gpu_stats")
 def gpu_stats(
     period: str = Query(
         "week",
-        enum=["week", "twoweeks", "month"],
-        description="Time period: week, twoweeks, or month, default: week",
+        enum=["week", "two_weeks", "month"],
+        description="Time period: week, two_weeks, or month, default: week",
     ),
     metric: str = Query(
         "total_time_hours",

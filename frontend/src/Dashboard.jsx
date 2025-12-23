@@ -425,8 +425,8 @@ export default function Dashboard() {
         <Box sx={{ display: 'flex', gap: 1, mr: 3, alignItems: 'center' }}>
           {[
             { key: 'week', label: '7d' },
-            { key: 'twoweeks', label: '14d' },
-            { key: 'month', label: '1m' },
+            { key: 'two_weeks', label: '14d' },
+            { key: 'month', label: '31d' },
           ].map((opt) => (
             <button
               key={opt.key}

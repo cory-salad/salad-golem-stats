@@ -6,7 +6,7 @@ import sys
 
 load_dotenv()
 
-filter_organizations = []
+filter_organizations = ["team352", "realfake", "phrasly", "sugarlab"]
 
 
 def get_db_conn():
@@ -122,7 +122,8 @@ query = f"""
 		SELECT
 			strftime('%Y-%m-%d %H:00:00', stop_at / 1000, 'unixepoch') AS hour,
 			node_id,
-			(stop_at - start_at) / 1000 AS duration,
+			(stop_at - start_at) / 1000 AS duration_seconds,
+			(stop_at - start_at) / 1000 / 3600 AS duration_hours,
 			CASE WHEN gpu_class_id IS NULL OR gpu_class_id = '' THEN 'no_gpu' ELSE gpu_class_id END AS gpu_group,
 			invoice_amount,
 			ram,
@@ -133,14 +134,14 @@ query = f"""
 	base_with_resource_hours AS (
 		SELECT	
 			*,
-			ram * duration / 60 / 60 AS ram_hours,
-			cpu * duration / 60 / 60 AS cpu_hours
+			ram * duration_hours / 1024 AS ram_hours,
+			cpu * duration_hours AS cpu_hours
 		FROM base
 	), 
 	breakdown AS (
 		SELECT hour, gpu_group,
-			SUM(duration) AS total_time_seconds,
-			SUM(duration) AS total_time_hours,
+			SUM(duration_seconds) AS total_time_seconds,
+			SUM(duration_hours)  AS total_time_hours,
 			SUM(invoice_amount) AS total_invoice_amount,
 			SUM(ram_hours) AS total_ram_hours,
 			SUM(cpu_hours) AS total_cpu_hours,
@@ -150,8 +151,8 @@ query = f"""
 	),
 	gpu_total AS (
 		SELECT hour, 'any_gpu' as gpu_group,
-			SUM(duration) AS total_time_seconds,
-			SUM(duration) AS total_time_hours,
+			SUM(duration_seconds) AS total_time_seconds,
+			SUM(duration_hours)  AS total_time_hours,
 			SUM(invoice_amount) AS total_invoice_amount	,
 			SUM(ram_hours) AS total_ram_hours,
 			SUM(cpu_hours) AS total_cpu_hours,
@@ -162,8 +163,8 @@ query = f"""
 	),
 	total AS (
 		SELECT hour, 'all' as total_group,
-			SUM(duration) AS total_time_seconds,
-			SUM(duration) AS total_time_hours,
+			SUM(duration_seconds) AS total_time_seconds,
+			SUM(duration_hours) AS total_time_hours,
 			SUM(invoice_amount) AS total_invoice_amount,
 			SUM(ram_hours) AS total_ram_hours,
 			SUM(cpu_hours) AS total_cpu_hours,

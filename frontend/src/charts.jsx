@@ -15,6 +15,14 @@ const getAxisColors = (isDark) => ({
   grid: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
 });
 
+// Time window display mapping
+const timeLabels = {
+  day: 'over the last day',
+  week: 'over the last week',
+  two_weeks: 'over the last two weeks',
+  month: 'over the last month',
+};
+
 // Format dates specifically for tooltips (more detailed)
 const formatTooltipDate = (timestamp, window) => {
   const date = new Date(timestamp);
@@ -264,7 +272,8 @@ export function TrendChart({
   // Time period clarification for current value
   const valuePeriodLabel = {
     day: 'last hour:',
-    week: 'last hour:',
+    week: 'last day:',
+    two_weeks: 'last day:',
     month: 'last day:',
   };
 
@@ -349,13 +358,6 @@ export function TrendChart({
       );
     }
   }
-
-  // Time window display mapping
-  const timeLabels = {
-    day: 'over the last day',
-    week: 'over the last week',
-    month: 'over the last month',
-  };
 
   return (
     <Box
@@ -709,13 +711,6 @@ export function StackedChart({
       chart.update('none');
     }
   }, [theme.palette.mode, chartData, trendWindow]);
-
-  // Time window display mapping
-  const timeLabels = {
-    day: 'over the last day',
-    week: 'over the last week',
-    month: 'over the last month',
-  };
 
   return (
     <Box
