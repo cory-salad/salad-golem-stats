@@ -12,5 +12,15 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./migrations:/migrations
 
+  redis:
+    image: redis:7
+    container_name: dev-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+
 volumes:
   pgdata:
+  redisdata:

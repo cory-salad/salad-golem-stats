@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e  # stop if any command fails
 
-echo "Starting Postgres..."
+echo "Starting Postgres and Redis..."
 cd db
 docker-compose up -d
 
 # Wait a few seconds for DB to be ready
-echo "Waiting for Postgres to accept connections..."
+echo "Waiting for Postgres and Redis to accept connections..."
 sleep 5
 
 # Apply init migration

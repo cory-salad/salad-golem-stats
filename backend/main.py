@@ -7,8 +7,82 @@ import psycopg2
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
+import redis
+import json
+import hashlib
+from functools import wraps
 
 load_dotenv()
+
+# Redis configuration
+redis_client = None
+try:
+    redis_client = redis.Redis(
+        host=os.getenv("REDIS_HOST", "localhost"),
+        port=int(os.getenv("REDIS_PORT", 6379)),
+        db=int(os.getenv("REDIS_DB", 0)),
+        decode_responses=True,
+    )
+    # Test connection
+    redis_client.ping()
+    print("Redis connected successfully")
+except Exception as e:
+    print(f"Redis connection failed: {e}")
+    redis_client = None
+
+# Cache TTL configuration (in seconds)
+CACHE_TTL = {
+    "stats": int(os.getenv("CACHE_TTL_STATS", 3600)),  # 1 hour for aggregated stats
+    "trends": int(os.getenv("CACHE_TTL_TRENDS", 3600)),  # 1 hour for trend data
+    "city_counts": int(os.getenv("CACHE_TTL_CITY", 86400)),  # 24 hours for city data
+    "transactions": int(os.getenv("CACHE_TTL_TRANSACTIONS", 60)),  # 1 minute for live transactions
+    "gpu_stats": int(os.getenv("CACHE_TTL_GPU", 3600)),  # 1 hour for GPU stats
+}
+
+
+def cache_response(cache_key: str, ttl: int = None):
+    """
+    Cache decorator for API endpoints.
+    Args:
+        cache_key: Key prefix for this endpoint type
+        ttl: Time to live in seconds, defaults to CACHE_TTL[cache_key]
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if redis_client is None:
+                # No Redis, execute normally
+                return func(*args, **kwargs)
+
+            # Create cache key from function name and query parameters
+            query_params = {k: v for k, v in kwargs.items() if k != "request"}
+            cache_hash = hashlib.md5(json.dumps(query_params, sort_keys=True).encode()).hexdigest()
+            full_cache_key = f"{cache_key}:{cache_hash}"
+
+            # Try cache first
+            try:
+                cached = redis_client.get(full_cache_key)
+                if cached:
+                    return json.loads(cached)
+            except Exception as e:
+                print(f"Redis get error: {e}")
+
+            # Execute function and cache result
+            result = func(*args, **kwargs)
+
+            try:
+                cache_ttl = ttl or CACHE_TTL.get(cache_key, 3600)
+                redis_client.setex(full_cache_key, cache_ttl, json.dumps(result, default=str))
+            except Exception as e:
+                print(f"Redis set error: {e}")
+
+            return result
+
+        return wrapper
+
+    return decorator
+
 
 app = FastAPI()
 
@@ -243,6 +317,7 @@ def get_metrics(metric: str, period: str = "week", gpu: str = "all"):
 
 
 @app.get("/metrics/stats")
+@cache_response("stats")
 def get_stats_summary(
     period: str = Query(
         "week",
@@ -297,6 +372,7 @@ def get_stats_summary(
 
 # Generalized endpoint for hourly/daily GPU stats (for 'all' group)
 @app.get("/metrics/trends")
+@cache_response("trends")
 def assemble_metrics(
     period: str = Query(
         "week",
@@ -353,6 +429,7 @@ def assemble_metrics(
 
 
 @app.get("/metrics/city_counts")
+@cache_response("city_counts")
 def get_city_counts():
     with get_db_conn() as conn:
         with conn.cursor() as cur:
@@ -368,6 +445,7 @@ def get_city_counts():
 
 
 @app.get("/metrics/transactions")
+@cache_response("transactions")
 def get_transactions(
     limit: int = Query(10, ge=1, le=100),
     cursor: Optional[str] = Query(
@@ -511,6 +589,7 @@ def get_transactions(
 
 
 @app.get("/metrics/gpu_stats")
+@cache_response("gpu_stats")
 def gpu_stats(
     period: str = Query(
         "week",

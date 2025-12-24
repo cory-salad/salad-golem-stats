@@ -26,13 +26,13 @@ echo "Stopping Windows-side node.exe processes..."
 powershell.exe -NoProfile -Command \
   "Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force"
 
-# Stop Postgres Docker
+# Stop Postgres and Redis Docker
 cd db
-if docker-compose ps | grep -q 'dev-postgres'; then
-  echo "Stopping Postgres Docker container..."
+if docker-compose ps | grep -q 'dev-postgres\|dev-redis'; then
+  echo "Stopping Docker containers (Postgres and Redis)..."
   docker-compose down
 else
-  echo "No Postgres Docker container running."
+  echo "No Docker containers running."
 fi
 
 #  Get-Process node | Select-Object Id, CPU, StartTime, Path
