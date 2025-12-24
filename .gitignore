@@ -35,3 +35,5 @@ frontend/.env
 data-collection/data/plans.db
 backend/nohup.out
 data-collection/plans.db
+data-collection/plans.db-shm
+data-collection/plans.db-wal

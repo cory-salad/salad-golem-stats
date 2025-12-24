@@ -230,9 +230,19 @@ export function TrendChart({
         },
       };
       chart.options.scales.y.ticks.callback = function (value) {
+        // Show one decimal for 'k' scale unless unit is 'count'
         if (yFormat.factor === 1) return value.toLocaleString();
         const v = value / yFormat.factor;
-        if (v % 1 === 0) return v + yFormat.suffix;
+        if (unit === 'count') {
+          // For count, always show integer
+          return Math.round(v) + yFormat.suffix;
+        }
+        if (yFormat.suffix === 'k') {
+          // For k, always show at most 1 decimal
+          return v % 1 === 0
+            ? v + yFormat.suffix
+            : v.toFixed(1).replace(/\.0$/, '') + yFormat.suffix;
+        }
         if (Math.abs(v) < 10) return v.toFixed(2).replace(/\.?0+$/, '') + yFormat.suffix;
         if (Math.abs(v) < 100) return v.toFixed(1).replace(/\.?0+$/, '') + yFormat.suffix;
         return Math.round(v) + yFormat.suffix;
@@ -302,8 +312,10 @@ export function TrendChart({
       }
     }
     // k/M/B/T formatting for other units
-    if (Math.abs(val) < 1e4) {
+    if (Math.abs(val) < 1e3) {
       return { value: val.toLocaleString(), unit };
+    } else if (Math.abs(val) < 1e4) {
+      return { value: Number(val.toFixed(1)).toLocaleString(), unit };
     } else if (Math.abs(val) < 1e5) {
       return { value: (val / 1e3).toFixed(1) + 'k', unit };
     } else if (Math.abs(val) < 1e6) {
@@ -635,9 +647,17 @@ export function StackedChart({
                 ticks: {
                   color: getAxisColors(isDark).tick,
                   callback: function (value) {
+                    // Show one decimal for 'k' scale unless unit is 'count'
                     if (yFormat.factor === 1) return value.toLocaleString();
                     const v = value / yFormat.factor;
-                    if (v % 1 === 0) return v + yFormat.suffix;
+                    if (unit === 'count') {
+                      // For count, always show integer
+                      return Math.round(v) + yFormat.suffix;
+                    }
+                    if (yFormat.suffix === 'k') {
+                      // For k, show one decimal if not integer
+                      return v % 1 === 0 ? v + yFormat.suffix : v.toFixed(1) + yFormat.suffix;
+                    }
                     if (Math.abs(v) < 10)
                       return v.toFixed(2).replace(/\.?0+$/, '') + yFormat.suffix;
                     if (Math.abs(v) < 100)
@@ -844,14 +864,20 @@ export function StackedChart({
                       >
                         {(() => {
                           if (scale.factor === 1) {
-                            return Math.round(val).toLocaleString();
+                            // Show decimals for small values, unless unit is count
+                            if (unit === 'count') {
+                              return Math.round(val).toLocaleString();
+                            } else {
+                              // Consistent 1 decimal for all non-count values, keep trailing zeros
+                              return val.toLocaleString(undefined, {
+                                minimumFractionDigits: 1,
+                                maximumFractionDigits: 1,
+                              });
+                            }
                           } else {
                             const scaledVal = val / scale.factor;
-                            // Add commas to large scaled values (>= 1000)
-                            if (scaledVal >= 1000) {
-                              return `${scaledVal.toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: scaledVal % 1 === 0 ? 0 : 1 })}${scale.suffix}`;
-                            }
-                            return `${scaledVal.toFixed(1).replace(/\.0$/, '')}${scale.suffix}`;
+                            // Consistent 1 decimal for all scaled values
+                            return `${scaledVal.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${scale.suffix}`;
                           }
                         })()}
                       </Typography>
@@ -948,14 +974,20 @@ export function StackedChart({
                         >
                           {(() => {
                             if (scale.factor === 1) {
-                              return Math.round(val).toLocaleString();
+                              // Show decimals for small values, unless unit is count
+                              if (unit === 'count') {
+                                return Math.round(val).toLocaleString();
+                              } else {
+                                // Consistent 1 decimal for all non-count values, keep trailing zeros
+                                return val.toLocaleString(undefined, {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                });
+                              }
                             } else {
                               const scaledVal = val / scale.factor;
-                              // Add commas to large scaled values (>= 1000)
-                              if (scaledVal >= 1000) {
-                                return `${scaledVal.toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: scaledVal % 1 === 0 ? 0 : 1 })}${scale.suffix}`;
-                              }
-                              return `${scaledVal.toFixed(1).replace(/\.0$/, '')}${scale.suffix}`;
+                              // Consistent 1 decimal for all scaled values
+                              return `${scaledVal.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${scale.suffix}`;
                             }
                           })()}
                         </Typography>

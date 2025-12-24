@@ -6,9 +6,7 @@ import os
 import psycopg2
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
-import random
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
 
 load_dotenv()
 
@@ -26,7 +24,7 @@ app.add_middleware(
 )
 
 
-# Database connection setup (PostgreSQL example)
+# Database connection setup
 def get_db_conn():
     return psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB"),

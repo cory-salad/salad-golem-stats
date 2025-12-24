@@ -122,8 +122,8 @@ query = f"""
 		SELECT
 			strftime('%Y-%m-%d %H:00:00', stop_at / 1000, 'unixepoch') AS hour,
 			node_id,
-			(stop_at - start_at) / 1000 AS duration_seconds,
-			(stop_at - start_at) / 1000 / 3600 AS duration_hours,
+			(stop_at - start_at) / 1000.0 AS duration_seconds,
+			(stop_at - start_at) / 1000.0 / 3600.0 AS duration_hours,
 			CASE WHEN gpu_class_id IS NULL OR gpu_class_id = '' THEN 'no_gpu' ELSE gpu_class_id END AS gpu_group,
 			invoice_amount,
 			ram,
@@ -186,7 +186,7 @@ try:
     results = cursor.fetchall()
     for row in results:
         print(
-            f"Hour: {row[0]}, GPU Group: {row[1]}, Total time running (s): {row[2]}, Total invoice amount: {row[3]}, Total RAM hours: {row[4]}, Total CPU hours: {row[5]}, Total transactions: {row[6]}"
+            f"Hour: {row[0]}, GPU Group: {row[1]}, Total time running (s): {row[2]}, Total time running (hr): {row[3]}, Total invoice amount: {row[4]}, Total RAM hours: {row[5]}, Total CPU hours: {row[6]}, Total transactions: {row[7]}"
         )
 
     # Insert hourly GPU stats into Postgres

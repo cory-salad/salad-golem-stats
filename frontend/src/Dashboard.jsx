@@ -286,15 +286,26 @@ export default function Dashboard() {
     if (!raw || !raw.labels || !raw.datasets) {
       return { labels: [], datasets: [] };
     }
-    // Add backgroundColor and other Chart.js props
-    const datasets = raw.datasets.map((ds, i) => ({
-      ...ds,
-      backgroundColor: legendColors[i % legendColors.length],
-      borderColor: '#fff',
-      borderWidth: 1,
-      fill: true,
-    }));
-    return { labels: raw.labels, datasets };
+    // Calculate frequency (sum of values) for each dataset
+    const datasetsWithFrequency = raw.datasets.map((ds, i) => {
+      const freq = Array.isArray(ds.data) ? ds.data.reduce((a, b) => a + Math.abs(b), 0) : 0;
+      return {
+        ...ds,
+        _frequency: freq,
+        _originalIndex: i,
+      };
+    });
+    // Sort datasets by frequency descending
+    const sortedDatasets = datasetsWithFrequency
+      .sort((a, b) => b._frequency - a._frequency)
+      .map((ds, i) => ({
+        ...ds,
+        backgroundColor: legendColors[i % legendColors.length],
+        borderColor: '#fff',
+        borderWidth: 1,
+        fill: true,
+      }));
+    return { labels: raw.labels, datasets: sortedDatasets };
   }, []);
 
   return (
@@ -793,7 +804,7 @@ export default function Dashboard() {
                           setTrendWindow={() => {}}
                           chartData={gpuTimeData}
                           labels={gpuTimeData.labels}
-                          unit="nodes"
+                          unit="hours"
                         />
                       );
                     })()}
@@ -807,13 +818,13 @@ export default function Dashboard() {
                       return (
                         <StackedChart
                           id="gpuStackedChartVramTime"
-                          title="GPUs Time by VRAM (s)"
+                          title="GPUs Time by VRAM (hr)"
                           description="Time GPU customer workloads were running on SaladCloud, by VRAM."
                           trendWindow={globalTimeWindow}
                           setTrendWindow={() => {}}
                           chartData={gpuVramTimeData}
                           labels={gpuVramTimeData.labels}
-                          unit="nodes"
+                          unit="hours"
                         />
                       );
                     })()}
