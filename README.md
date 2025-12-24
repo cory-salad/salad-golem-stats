@@ -25,7 +25,9 @@ This is a summary of the current state of the project based on recent developmen
 ### Running the Application
 
 Before running the application you'll need get data either by importing a dumped database or processing a plans database with data-collection/process_plans.py and data-collection/get_globe_data.py (requires credentials for querying Matrix mongo database).
-The easiest way to get everything running is to use the provided script.
+
+
+Once you have data, the easiest way to get everything running is to use the provided script.
 
 1.  **Set up Environment Variables:** Before running, you must create the required `.env` files as detailed in the "Environment Variables" section below.
 2.  **Run the script:**
