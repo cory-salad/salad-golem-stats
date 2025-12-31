@@ -65,7 +65,10 @@ def cache_response(cache_key: str, ttl: int = None):
             try:
                 cached = redis_client.get(full_cache_key)
                 if cached:
+                    print(f"[CACHE HIT] {cache_key}:{cache_hash[:8]}")
                     return json.loads(cached)
+                else:
+                    print(f"[CACHE MISS] {cache_key}:{cache_hash[:8]}")
             except Exception as e:
                 print(f"Redis get error: {e}")
 
@@ -75,6 +78,7 @@ def cache_response(cache_key: str, ttl: int = None):
             try:
                 cache_ttl = ttl or CACHE_TTL.get(cache_key, 3600)
                 redis_client.setex(full_cache_key, cache_ttl, json.dumps(result, default=str))
+                print(f"[CACHE SET] {cache_key}:{cache_hash[:8]} (TTL: {cache_ttl}s)")
             except Exception as e:
                 print(f"Redis set error: {e}")
 

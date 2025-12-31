@@ -94,6 +94,7 @@ export default function GlobeComponent({ theme, themeMode, cityData }) {
           hexBinPointWeight="normalized"
           hexBinResolution={4}
           enablePointerInteraction={true}
+          hexAltitude={(d) => Math.min(0.1, d.sumWeight)}
           hexTopColor={() => (themeMode === 'dark' ? saladPalette.midGreen : saladPalette.green)}
           hexSideColor={() => (themeMode === 'dark' ? saladPalette.midGreen : saladPalette.darkGreen)}
           animateIn={false}
