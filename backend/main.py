@@ -430,7 +430,7 @@ def assemble_metrics(
 # New endpoint: /metrics/geo_counts
 @app.get("/metrics/geo_counts")
 @cache_response("geo_counts")
-def get_geo_counts(resolution: int = 4):
+def get_geo_counts(resolution: int = 5):
     """
     Returns city counts aggregated to H3 hexagons on the backend.
     Backend has full control over aggregation logic.
@@ -460,37 +460,24 @@ def get_geo_counts(resolution: int = 4):
             # Backend control: include all hexagons (no filtering)
             sorted_hexes = sorted(hex_counts.items(), key=lambda x: x[1], reverse=True)
             
-            # Convert H3 hex IDs to optimized polygon data
+            # Convert H3 hex IDs to center points
             result = []
             for hex_id, count in sorted_hexes:
                 try:
-                    # Get boundary as list of (lat, lng) tuples
-                    boundary_coords = h3.cell_to_boundary(hex_id)
-                    # Convert to [lng, lat] format for GeoJSON
-                    geojson_coords = [[lng, lat] for lat, lng in boundary_coords]
-                    # Close the polygon
-
-                    geojson_coords = list(reversed(geojson_coords))
-                    geojson_coords.append(geojson_coords[0])
+                    # Get center lat/lng of the hex
+                    center_lat, center_lng = h3.cell_to_latlng(hex_id)
                     
                     # Backend control: calculate normalized value
                     normalized_count = count / max_count if max_count > 0 else 0
                     
-                    # Return simplified hexagon data
-                    polygon_data = {
-                        "type": "Feature",
-                        "properties": {
-                            "hex": hex_id,
-                            "count": count,
-                            "normalized": normalized_count,
-                            "max_count": max_count
-                        },
-                        "geometry": {
-                            "type": "Polygon",
-                            "coordinates": [geojson_coords]
-                        }
+                    # Return simplified hex center data
+                    point_data = {
+                        "lat": center_lat,
+                        "lng": center_lng,
+                        "normalized": normalized_count,
+                        "count": count
                     }
-                    result.append(polygon_data)
+                    result.append(point_data)
                 except Exception as e:
                     print(f"[ERROR] Failed to process hex {hex_id}: {e}")
                     continue
