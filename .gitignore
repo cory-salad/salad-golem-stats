@@ -39,3 +39,4 @@ data-collection/plans.db-shm
 data-collection/plans.db-wal
 backend/statsdb_dump.sql
 backend/statsdb_dump.zip
+backend/venv

@@ -9,7 +9,7 @@ const saladPalette = {
   midGreen: 'rgb(120,200,60)',
 };
 
-export default function GlobeComponent({ theme, themeMode, cityData }) {
+function GlobeComponent({ theme, themeMode, cityData }) {
   if (!theme) {
     return null; // Don't render if theme is not available yet
   }
@@ -78,21 +78,42 @@ export default function GlobeComponent({ theme, themeMode, cityData }) {
 
   return (
     <div ref={globeContainerRef}>
-      <Globe
-        ref={globeNetworkRef}
-        width={480}
-        height={400}
-        globeImageUrl={themeMode === 'dark' ? '/earth-night.jpg' : '/earth-light.jpg'}
-        backgroundColor={theme.palette.background.default}
-        onPointOfViewChanged={handleGlobeViewChange}
-        hexBinPointsData={cityData}
-        hexBinPointLat={(d) => d.lat}
-        hexBinPointLng={(d) => d.lon}
-        hexBinResolution={3}
-        hexAltitude={(d) => Math.min(0.15, d.sumWeight * 0.01)}
-        hexTopColor={() => (themeMode === 'dark' ? saladPalette.midGreen : saladPalette.green)}
-        hexSideColor={() => (themeMode === 'dark' ? saladPalette.midGreen : saladPalette.darkGreen)}
-      />
+      {/* Defensive: only render Globe if cityData is a non-empty array with hex points */}
+      {Array.isArray(cityData) && cityData.length > 0 && cityData.every(d => d.lat && d.lng) ? (
+        <Globe
+          ref={globeNetworkRef}
+          width={480}
+          height={400}
+          globeImageUrl={themeMode === 'dark' ? '/earth-night.jpg' : '/earth-light.jpg'}
+          backgroundColor={theme.palette.background.default}
+          onPointOfViewChanged={handleGlobeViewChange}
+          polygonsData={[]}
+          hexBinPointsData={cityData}
+          hexBinPointLat="lat"
+          hexBinPointLng="lng"
+          hexBinPointWeight="normalized"
+          hexBinResolution={4}
+          enablePointerInteraction={true}
+          hexAltitude={(d) => Math.min(0.1, d.sumWeight)}
+          hexTopColor={() => (themeMode === 'dark' ? saladPalette.midGreen : saladPalette.green)}
+          hexSideColor={() => (themeMode === 'dark' ? saladPalette.midGreen : saladPalette.darkGreen)}
+          animateIn={false}
+        />
+      ) : (
+        <div style={{ width: 480, height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: theme.palette.text.secondary }}>Loading globe data...</span>
+        </div>
+      )}
     </div>
   );
 }
+
+// Custom comparison: only re-render if cityData, theme, or themeMode change
+function areEqual(prevProps, nextProps) {
+  if (prevProps.themeMode !== nextProps.themeMode) return false;
+  if (prevProps.theme !== nextProps.theme) return false;
+  if (prevProps.cityData !== nextProps.cityData) return false;
+  return true;
+}
+
+export default React.memo(GlobeComponent, areEqual);

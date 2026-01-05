@@ -15,7 +15,7 @@ function useStatsTotals(period = 'week', gpu = 'all') {
 // Dashboard.jsx - Main dashboard component for Stats Salad
 // Uses Material-UI, Chart.jsx, react-globe.gl, and custom chart components
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -222,8 +222,8 @@ export default function Dashboard() {
     localStorage.setItem('theme', themeMode);
   }, [themeMode]);
 
-  // Create theme based on current mode
-  const theme = createAppTheme(themeMode);
+  // Memoize theme so it only changes when themeMode changes
+  const theme = useMemo(() => createAppTheme(themeMode), [themeMode]);
 
   // Helper to fetch stats summary for the bottom section (trends)
   function useStatsSummary(period = 'month', gpu = 'all') {
@@ -267,17 +267,19 @@ export default function Dashboard() {
       });
   }, []);
 
-  // Load city node count data from API endpoint on mount
+  // Load node count data from API endpoint only once on mount
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/city_counts`)
+    console.log("Fetching globe cityData...");
+    fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/geo_counts`)
       .then((res) => (res.ok ? res.json() : Promise.reject('Failed to fetch city data')))
       .then((data) => {
-        setCityData(data);
+          setCityData(data);
       })
       .catch((err) => {
         console.error('Error loading cityData:', err);
+        setCityData([]);
       });
-  }, []);
+  }, []); // Only run on mount, not on time window change
 
   // Helper function to transform backend data for stacked charts
   const createStackedChartData = React.useCallback((statsSummary, fieldName) => {
@@ -454,7 +456,6 @@ export default function Dashboard() {
                 border: '1px solid #999',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
                 minWidth: '32px',
                 outline: 'none',
               }}

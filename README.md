@@ -6,12 +6,12 @@ This project provides a dashboard for visualizing network statistics for SaladCl
 
 This is a summary of the current state of the project based on recent development notes.
 
-*   **Frontend (`/frontend`):** The UI is functional but requires some polish on component arrangement and titles.
+*   **Frontend (`/frontend`):** 
     *   **Globe:** The globe visualization is working and displays daily active nodes from a snapshot. This could be updated to show live data or only nodes participating in the test, but the current implementation avoids a sparse-looking map.
-    *   **Transaction Table:** The data in this table is currently mocked. It needs UI improvements like pagination and the ability to limit results, which has been deferred until the data source is finalized.
-    *   **Trend Graphs:** The graphs are functional, but the organization, labeling, and choice of what to plot need further refinement. Tooltips are a planned minor addition.
+    *   **Transaction Table:** The data in this table is currently mocked. 
+    *   **Trend Graphs:** 
 *   **Backend (`/backend`):** The FastAPI backend is functional for its current purpose, serving data to the frontend from the database.
-*   **Data (`/db`, `/data-collection`):** The database contains processed data. However, there are suspected discrepancies in the data (e.g., incorrect units or scaling) originating from the initial Mixpanel pull or processing scripts. This has not been fully investigated as the data sources are expected to change.
+*   **Data (`/db`, `/data-collection`):** The database contains processed data. The data sources are expected to change.
 
 ## Getting Started
 
@@ -24,7 +24,10 @@ This is a summary of the current state of the project based on recent developmen
 
 ### Running the Application
 
-The easiest way to get everything running is to use the provided script.
+Before running the application you'll need get data either by importing a dumped database or processing a plans database with data-collection/process_plans.py and data-collection/get_globe_data.py (requires credentials for querying Matrix mongo database).
+
+
+Once you have data, the easiest way to get everything running is to use the provided script.
 
 1.  **Set up Environment Variables:** Before running, you must create the required `.env` files as detailed in the "Environment Variables" section below.
 2.  **Run the script:**
@@ -91,7 +94,8 @@ STRAPIPW=
     *   **Endpoints:**
         *   `/metrics/city_counts`: Provides geolocated node counts for the globe visualization.
         *   `/metrics/transactions`: Serves mocked transaction data.
-        *   `/metrics/stats`: Provides aggregated data for the trend graphs. Currently returns metrics like `total_time_seconds`, `total_invoice_amount`, `unique_node_count`, etc.
+        *   `/metrics/trends`: Provides aggregated data for the trend graphs. 
+        *   `/metrics/stats`: Provides aggregated data for stats. 
 *   **/db:** Contains the `docker-compose.yaml` to spin up the PostgreSQL database and a `/migrations` directory with the schema.
 *   **/data-collection:** Contains Python scripts for pulling data from various sources (e.g., Mixpanel, MongoDB) and processing it into the PostgreSQL database.
 *   **/frontend:** A React application built with Vite that consumes the backend API and displays the dashboard.

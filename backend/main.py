@@ -1,3 +1,4 @@
+import h3
 from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
 from pydantic import BaseModel
@@ -64,7 +65,10 @@ def cache_response(cache_key: str, ttl: int = None):
             try:
                 cached = redis_client.get(full_cache_key)
                 if cached:
+                    print(f"[CACHE HIT] {cache_key}:{cache_hash[:8]}")
                     return json.loads(cached)
+                else:
+                    print(f"[CACHE MISS] {cache_key}:{cache_hash[:8]}")
             except Exception as e:
                 print(f"Redis get error: {e}")
 
@@ -74,6 +78,7 @@ def cache_response(cache_key: str, ttl: int = None):
             try:
                 cache_ttl = ttl or CACHE_TTL.get(cache_key, 3600)
                 redis_client.setex(full_cache_key, cache_ttl, json.dumps(result, default=str))
+                print(f"[CACHE SET] {cache_key}:{cache_hash[:8]} (TTL: {cache_ttl}s)")
             except Exception as e:
                 print(f"Redis set error: {e}")
 
@@ -426,7 +431,62 @@ def assemble_metrics(
         )[metric]
 
     return assembled_metrics
-
+# New endpoint: /metrics/geo_counts
+@app.get("/metrics/geo_counts")
+@cache_response("geo_counts")
+def get_geo_counts(resolution: int = 4):
+    """
+    Returns city counts aggregated to H3 hexagons on the backend.
+    Backend has full control over aggregation logic.
+    """
+    with get_db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT name, count, lat, long 
+                FROM city_snapshots 
+                WHERE ts = (SELECT MAX(ts) FROM city_snapshots)
+                ORDER BY count DESC
+                """
+            )
+            rows = cur.fetchall()
+            
+            # Backend aggregation: group cities by H3 hexagon with full control
+            hex_counts = {}
+            max_count = 0
+            
+            for r in rows:
+                lat, lon, count = r[2], r[3], r[1]
+                hex_id = h3.latlng_to_cell(lat, lon, resolution)
+                hex_counts[hex_id] = hex_counts.get(hex_id, 0) + count
+                max_count = max(max_count, hex_counts[hex_id])
+            
+            # Backend control: include all hexagons (no filtering)
+            sorted_hexes = sorted(hex_counts.items(), key=lambda x: x[1], reverse=True)
+            
+            # Convert H3 hex IDs to center points
+            result = []
+            for hex_id, count in sorted_hexes:
+                try:
+                    # Get center lat/lng of the hex
+                    center_lat, center_lng = h3.cell_to_latlng(hex_id)
+                    
+                    # Backend control: calculate normalized value
+                    normalized_count = count / max_count if max_count > 0 else 0
+                    
+                    # Return simplified hex center data
+                    point_data = {
+                        "lat": center_lat,
+                        "lng": center_lng,
+                        "normalized": normalized_count
+                    }
+                    result.append(point_data)
+                except Exception as e:
+                    print(f"[ERROR] Failed to process hex {hex_id}: {e}")
+                    continue
+            
+            return result
+         
 
 @app.get("/metrics/city_counts")
 @cache_response("city_counts")
