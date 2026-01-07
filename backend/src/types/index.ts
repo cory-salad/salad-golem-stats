@@ -115,6 +115,12 @@ export interface GroupedMetric {
   value: number;
 }
 
+// Time series grouped by category (for stacked charts)
+export interface GroupedTimeSeries {
+  labels: string[];
+  datasets: { label: string; data: number[] }[];
+}
+
 // Full response for plan stats endpoint
 export interface PlanStatsResponse {
   period: PlanPeriod;
@@ -125,11 +131,16 @@ export interface PlanStatsResponse {
     end: string;
   };
   totals: PlanTotals;
-  // Breakdowns by GPU
+  // Breakdowns by GPU (aggregate totals)
   gpu_hours_by_model: GroupedMetric[];
   gpu_hours_by_vram: GroupedMetric[];
   active_nodes_by_gpu_model: GroupedMetric[];
   active_nodes_by_vram: GroupedMetric[];
   // Time series (hourly or daily based on range)
   time_series: PlanDataPoint[];
+  // Time series grouped by GPU model/VRAM (for stacked charts)
+  gpu_hours_by_model_ts: GroupedTimeSeries;
+  gpu_hours_by_vram_ts: GroupedTimeSeries;
+  active_nodes_by_gpu_model_ts: GroupedTimeSeries;
+  active_nodes_by_vram_ts: GroupedTimeSeries;
 }

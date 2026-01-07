@@ -111,6 +111,70 @@ export async function planStatsRoutes(fastify: FastifyInstance): Promise<void> {
                   },
                 },
               },
+              gpu_hours_by_model_ts: {
+                type: 'object',
+                properties: {
+                  labels: { type: 'array', items: { type: 'string' } },
+                  datasets: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        label: { type: 'string' },
+                        data: { type: 'array', items: { type: 'number' } },
+                      },
+                    },
+                  },
+                },
+              },
+              gpu_hours_by_vram_ts: {
+                type: 'object',
+                properties: {
+                  labels: { type: 'array', items: { type: 'string' } },
+                  datasets: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        label: { type: 'string' },
+                        data: { type: 'array', items: { type: 'number' } },
+                      },
+                    },
+                  },
+                },
+              },
+              active_nodes_by_gpu_model_ts: {
+                type: 'object',
+                properties: {
+                  labels: { type: 'array', items: { type: 'string' } },
+                  datasets: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        label: { type: 'string' },
+                        data: { type: 'array', items: { type: 'number' } },
+                      },
+                    },
+                  },
+                },
+              },
+              active_nodes_by_vram_ts: {
+                type: 'object',
+                properties: {
+                  labels: { type: 'array', items: { type: 'string' } },
+                  datasets: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        label: { type: 'string' },
+                        data: { type: 'array', items: { type: 'number' } },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },

@@ -64,6 +64,22 @@ describe('planStats routes', () => {
         gpu_hours: 400.125,
       },
     ],
+    gpu_hours_by_model_ts: {
+      labels: ['2025-12-23T00:00:00.000Z'],
+      datasets: [{ label: 'RTX 4090 (24 GB)', data: [400.125] }],
+    },
+    gpu_hours_by_vram_ts: {
+      labels: ['2025-12-23T00:00:00.000Z'],
+      datasets: [{ label: '24 GB', data: [400.125] }],
+    },
+    active_nodes_by_gpu_model_ts: {
+      labels: ['2025-12-23T00:00:00.000Z'],
+      datasets: [{ label: 'RTX 4090 (24 GB)', data: [50] }],
+    },
+    active_nodes_by_vram_ts: {
+      labels: ['2025-12-23T00:00:00.000Z'],
+      datasets: [{ label: '24 GB', data: [50] }],
+    },
   };
 
   beforeEach(async () => {

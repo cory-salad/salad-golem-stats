@@ -43,33 +43,6 @@ function transformTimeSeries(timeSeries, metric) {
   }));
 }
 
-// Transform grouped metrics to StackedChart format
-function transformToStackedChart(timeSeries, groupedData, groupField) {
-  if (!timeSeries || !Array.isArray(timeSeries) || timeSeries.length === 0) {
-    return { labels: [], datasets: [] };
-  }
-
-  const legendColors = ['#b2d530', '#9acc35', '#7bb82e', '#53a626', '#3d6b28', '#1f4f22'];
-  const labels = timeSeries.map((point) => point.timestamp);
-
-  // Sort groups by total value descending
-  const sortedGroups = [...(groupedData || [])].sort((a, b) => b.value - a.value);
-
-  // For now, we'll create a simplified stacked chart showing totals per time period
-  // Since the API returns totals per group, not per-timestamp breakdowns,
-  // we'll show the distribution as a single bar or use the time series aggregate
-  const datasets = sortedGroups.slice(0, 6).map((group, i) => ({
-    label: group.group,
-    data: timeSeries.map(() => group.value / timeSeries.length), // Distribute evenly for now
-    backgroundColor: legendColors[i % legendColors.length],
-    borderColor: '#fff',
-    borderWidth: 1,
-    fill: true,
-  }));
-
-  return { labels, datasets };
-}
-
 import {
   Container,
   Typography,
@@ -262,12 +235,25 @@ export default function Dashboard() {
     return 'light';
   };
 
-  // Global time window state for all charts - now using plan periods
-  const [globalTimeWindow, setGlobalTimeWindow] = useState('7d');
+  // Global time window state for all charts - now using plan periods, with persistence
+  const [globalTimeWindow, setGlobalTimeWindow] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('timeWindow');
+      if (saved && ['6h', '24h', '7d', '30d', '90d', 'total'].includes(saved)) {
+        return saved;
+      }
+    }
+    return '7d';
+  });
   // Track which time window button is loading
   const [loadingTimeWindow, setLoadingTimeWindow] = useState(null);
   // Theme mode state with persistence
   const [themeMode, setThemeMode] = useState(getInitialTheme);
+
+  // Save time window to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('timeWindow', globalTimeWindow);
+  }, [globalTimeWindow]);
 
   // Save theme to localStorage when it changes
   useEffect(() => {
@@ -804,88 +790,52 @@ export default function Dashboard() {
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    {(() => {
-                      const gpuData = transformToStackedChart(
-                        plansData.time_series,
-                        plansData.active_nodes_by_gpu_model,
-                        'active_nodes'
-                      );
-                      return (
-                        <StackedChart
-                          id="gpuStackedChart"
-                          title="GPUs Used by Model"
-                          description="Provider nodes running GPU workloads, by model."
-                          trendWindow={globalTimeWindow}
-                          setTrendWindow={() => {}}
-                          chartData={gpuData}
-                          labels={gpuData.labels}
-                          unit="nodes"
-                        />
-                      );
-                    })()}
+                    <StackedChart
+                      id="gpuStackedChart"
+                      title="GPUs Used by Model"
+                      description="Provider nodes running GPU workloads, by model."
+                      trendWindow={globalTimeWindow}
+                      setTrendWindow={() => {}}
+                      chartData={plansData.active_nodes_by_gpu_model_ts}
+                      labels={plansData.active_nodes_by_gpu_model_ts?.labels || []}
+                      unit="nodes"
+                    />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    {(() => {
-                      const gpuVramData = transformToStackedChart(
-                        plansData.time_series,
-                        plansData.active_nodes_by_vram,
-                        'active_nodes'
-                      );
-                      return (
-                        <StackedChart
-                          id="gpuStackedChartVram"
-                          title="GPUs Used by VRAM"
-                          description="Provider nodes running GPU workloads, by VRAM."
-                          trendWindow={globalTimeWindow}
-                          setTrendWindow={() => {}}
-                          chartData={gpuVramData}
-                          labels={gpuVramData.labels}
-                          unit="nodes"
-                        />
-                      );
-                    })()}
+                    <StackedChart
+                      id="gpuStackedChartVram"
+                      title="GPUs Used by VRAM"
+                      description="Provider nodes running GPU workloads, by VRAM."
+                      trendWindow={globalTimeWindow}
+                      setTrendWindow={() => {}}
+                      chartData={plansData.active_nodes_by_vram_ts}
+                      labels={plansData.active_nodes_by_vram_ts?.labels || []}
+                      unit="nodes"
+                    />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    {(() => {
-                      const gpuTimeData = transformToStackedChart(
-                        plansData.time_series,
-                        plansData.gpu_hours_by_model,
-                        'gpu_hours'
-                      );
-                      return (
-                        <StackedChart
-                          id="gpuStackedChartTime"
-                          title="GPUs Time by Model (hr)"
-                          description="Time GPU customer workloads were running on SaladCloud, by GPU."
-                          trendWindow={globalTimeWindow}
-                          setTrendWindow={() => {}}
-                          chartData={gpuTimeData}
-                          labels={gpuTimeData.labels}
-                          unit="hours"
-                        />
-                      );
-                    })()}
+                    <StackedChart
+                      id="gpuStackedChartTime"
+                      title="GPUs Time by Model (hr)"
+                      description="Time GPU customer workloads were running on SaladCloud, by GPU."
+                      trendWindow={globalTimeWindow}
+                      setTrendWindow={() => {}}
+                      chartData={plansData.gpu_hours_by_model_ts}
+                      labels={plansData.gpu_hours_by_model_ts?.labels || []}
+                      unit="hours"
+                    />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    {(() => {
-                      const gpuVramTimeData = transformToStackedChart(
-                        plansData.time_series,
-                        plansData.gpu_hours_by_vram,
-                        'gpu_hours'
-                      );
-                      return (
-                        <StackedChart
-                          id="gpuStackedChartVramTime"
-                          title="GPUs Time by VRAM (hr)"
-                          description="Time GPU customer workloads were running on SaladCloud, by VRAM."
-                          trendWindow={globalTimeWindow}
-                          setTrendWindow={() => {}}
-                          chartData={gpuVramTimeData}
-                          labels={gpuVramTimeData.labels}
-                          unit="hours"
-                        />
-                      );
-                    })()}
+                    <StackedChart
+                      id="gpuStackedChartVramTime"
+                      title="GPUs Time by VRAM (hr)"
+                      description="Time GPU customer workloads were running on SaladCloud, by VRAM."
+                      trendWindow={globalTimeWindow}
+                      setTrendWindow={() => {}}
+                      chartData={plansData.gpu_hours_by_vram_ts}
+                      labels={plansData.gpu_hours_by_vram_ts?.labels || []}
+                      unit="hours"
+                    />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TrendChart

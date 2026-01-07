@@ -55,7 +55,6 @@ function toEpochMs(date: Date): number {
 }
 
 interface TotalsRow {
-  active_nodes: string;
   total_fees: string | null;
   compute_hours: string | null;
   transactions: string;
@@ -80,6 +79,56 @@ interface GpuGroupRow {
   value: string | null;
 }
 
+interface GpuTimeSeriesRow {
+  bucket: Date;
+  group_name: string;
+  value: string | null;
+}
+
+interface GroupedTimeSeriesOutput {
+  labels: string[];
+  datasets: { label: string; data: number[] }[];
+}
+
+// Transform raw time-series rows into chart-ready format
+function transformToGroupedTimeSeries(
+  rows: GpuTimeSeriesRow[],
+  timeSeries: PlanDataPoint[]
+): GroupedTimeSeriesOutput {
+  // Get ordered timestamps from the main time series
+  const labels = timeSeries.map((p) => p.timestamp);
+  const timestampIndex = new Map(labels.map((ts, i) => [ts, i]));
+
+  // Group values by group_name
+  const groupData = new Map<string, number[]>();
+  const groupTotals = new Map<string, number>();
+
+  for (const row of rows) {
+    const ts = row.bucket.toISOString();
+    const idx = timestampIndex.get(ts);
+    if (idx === undefined) continue;
+
+    const group = row.group_name;
+    const value = parseFloat(row.value || '0');
+
+    if (!groupData.has(group)) {
+      groupData.set(group, new Array(labels.length).fill(0));
+      groupTotals.set(group, 0);
+    }
+    groupData.get(group)![idx] = value;
+    groupTotals.set(group, (groupTotals.get(group) || 0) + value);
+  }
+
+  // Sort groups by total value descending, take top 6
+  const sortedGroups = [...groupData.entries()]
+    .sort((a, b) => (groupTotals.get(b[0]) || 0) - (groupTotals.get(a[0]) || 0))
+    .slice(0, 6);
+
+  const datasets = sortedGroups.map(([label, data]) => ({ label, data }));
+
+  return { labels, datasets };
+}
+
 export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsResponse> {
   const cutoff = getDataCutoff();
   const rangeStart = getRangeStart(cutoff, period);
@@ -95,9 +144,10 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   const timeParams = startMs ? [cutoffMs, startMs] : [cutoffMs];
 
   // 1. Get totals
+  // Active nodes uses overlap logic: nodes running at any point during the range
+  // Other metrics use stop_at (attributed to when job finished)
   const totalsQuery = `
     SELECT
-      COUNT(DISTINCT node_id) as active_nodes,
       COALESCE(SUM(invoice_amount), 0) as total_fees,
       COALESCE(SUM((stop_at - start_at) / 1000.0 / 3600.0), 0) as compute_hours,
       COUNT(*) as transactions,
@@ -112,11 +162,28 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     WHERE ${timeWhere}
   `;
 
-  const totalsResult = await query<TotalsRow>(totalsQuery, timeParams);
+  // Active nodes: count nodes that were running at any point during the range
+  const activeNodesQuery = startMs
+    ? `
+    SELECT COUNT(DISTINCT node_id) as active_nodes
+    FROM node_plan
+    WHERE start_at < $1 AND stop_at >= $2
+  `
+    : `
+    SELECT COUNT(DISTINCT node_id) as active_nodes
+    FROM node_plan
+    WHERE start_at < $1
+  `;
+
+  const [totalsResult, activeNodesResult] = await Promise.all([
+    query<TotalsRow>(totalsQuery, timeParams),
+    query<{ active_nodes: string }>(activeNodesQuery, timeParams),
+  ]);
   const totalsRow = totalsResult[0];
+  const activeNodesRow = activeNodesResult[0];
 
   const totals: PlanTotals = {
-    active_nodes: parseInt(totalsRow.active_nodes, 10) || 0,
+    active_nodes: parseInt(activeNodesRow.active_nodes, 10) || 0,
     total_fees: parseFloat(totalsRow.total_fees || '0'),
     compute_hours: parseFloat(totalsRow.compute_hours || '0'),
     transactions: parseInt(totalsRow.transactions, 10) || 0,
@@ -126,24 +193,116 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   };
 
   // 2. Get time series
+  // All metrics use overlap logic - hours are distributed across buckets where jobs were running
+  // overlap_hours = LEAST(stop_at, bucket_end) - GREATEST(start_at, bucket_start)
   const bucketInterval = granularity === 'hourly' ? 'hour' : 'day';
-  const timeSeriesQuery = `
+  const intervalStr = granularity === 'hourly' ? '1 hour' : '1 day';
+  const msPerHour = 3600000;
+
+  const timeSeriesQuery = startMs
+    ? `
+    WITH buckets AS (
+      SELECT
+        bucket,
+        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
+        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
+      FROM generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($2 / 1000.0)),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
+    ),
+    -- Calculate overlap duration for each job in each bucket
+    job_overlaps AS (
+      SELECT
+        b.bucket,
+        b.bucket_start_ms,
+        b.bucket_end_ms,
+        np.node_id,
+        np.cpu,
+        np.ram,
+        np.gpu_class_id,
+        np.invoice_amount,
+        np.start_at,
+        np.stop_at,
+        -- Overlap duration in ms: min(stop, bucket_end) - max(start, bucket_start)
+        GREATEST(0, LEAST(np.stop_at, b.bucket_end_ms) - GREATEST(np.start_at, b.bucket_start_ms)) as overlap_ms
+      FROM buckets b
+      JOIN node_plan np ON
+        np.start_at < b.bucket_end_ms
+        AND np.stop_at >= b.bucket_start_ms
+        AND np.stop_at <= $1
+        AND np.start_at >= $2 - 86400000::bigint * 30
+    )
     SELECT
-      date_trunc('${bucketInterval}', to_timestamp(stop_at / 1000.0)) as bucket,
+      bucket,
       COUNT(DISTINCT node_id) as active_nodes,
-      COALESCE(SUM(invoice_amount), 0) as total_fees,
-      COALESCE(SUM((stop_at - start_at) / 1000.0 / 3600.0), 0) as compute_hours,
-      COUNT(*) as transactions,
-      COALESCE(SUM(cpu * (stop_at - start_at) / 1000.0 / 3600.0), 0) as core_hours,
-      COALESCE(SUM(ram * (stop_at - start_at) / 1000.0 / 3600.0 / 1024.0), 0) as ram_hours,
+      -- Fees: attributed to bucket where transaction completed (stop_at)
+      COALESCE(SUM(CASE WHEN stop_at >= bucket_start_ms AND stop_at < bucket_end_ms
+            THEN invoice_amount ELSE 0 END), 0) as total_fees,
+      -- Hours = overlap_ms converted to hours
+      COALESCE(SUM(overlap_ms / ${msPerHour}.0), 0) as compute_hours,
+      -- Transactions: count jobs that ended in this bucket
+      COUNT(CASE WHEN stop_at >= bucket_start_ms AND stop_at < bucket_end_ms
+            THEN 1 END) as transactions,
+      COALESCE(SUM(cpu * overlap_ms / ${msPerHour}.0), 0) as core_hours,
+      COALESCE(SUM(ram * overlap_ms / ${msPerHour}.0 / 1024.0), 0) as ram_hours,
       COALESCE(SUM(
         CASE WHEN gpu_class_id IS NOT NULL AND gpu_class_id != ''
-        THEN (stop_at - start_at) / 1000.0 / 3600.0
+        THEN overlap_ms / ${msPerHour}.0
         ELSE 0 END
       ), 0) as gpu_hours
-    FROM node_plan
-    WHERE ${timeWhere}
-    GROUP BY bucket
+    FROM job_overlaps
+    GROUP BY bucket, bucket_start_ms, bucket_end_ms
+    ORDER BY bucket
+  `
+    : `
+    WITH all_buckets AS (
+      SELECT
+        bucket,
+        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
+        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
+      FROM (
+        SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(stop_at / 1000.0)) as bucket
+        FROM node_plan WHERE stop_at <= $1
+      ) x
+    ),
+    job_overlaps AS (
+      SELECT
+        b.bucket,
+        b.bucket_start_ms,
+        b.bucket_end_ms,
+        np.node_id,
+        np.cpu,
+        np.ram,
+        np.gpu_class_id,
+        np.invoice_amount,
+        np.start_at,
+        np.stop_at,
+        GREATEST(0, LEAST(np.stop_at, b.bucket_end_ms) - GREATEST(np.start_at, b.bucket_start_ms)) as overlap_ms
+      FROM all_buckets b
+      JOIN node_plan np ON
+        np.start_at < b.bucket_end_ms
+        AND np.stop_at >= b.bucket_start_ms
+        AND np.stop_at <= $1
+    )
+    SELECT
+      bucket,
+      COUNT(DISTINCT node_id) as active_nodes,
+      COALESCE(SUM(CASE WHEN stop_at >= bucket_start_ms AND stop_at < bucket_end_ms
+            THEN invoice_amount ELSE 0 END), 0) as total_fees,
+      COALESCE(SUM(overlap_ms / ${msPerHour}.0), 0) as compute_hours,
+      COUNT(CASE WHEN stop_at >= bucket_start_ms AND stop_at < bucket_end_ms
+            THEN 1 END) as transactions,
+      COALESCE(SUM(cpu * overlap_ms / ${msPerHour}.0), 0) as core_hours,
+      COALESCE(SUM(ram * overlap_ms / ${msPerHour}.0 / 1024.0), 0) as ram_hours,
+      COALESCE(SUM(
+        CASE WHEN gpu_class_id IS NOT NULL AND gpu_class_id != ''
+        THEN overlap_ms / ${msPerHour}.0
+        ELSE 0 END
+      ), 0) as gpu_hours
+    FROM job_overlaps
+    GROUP BY bucket, bucket_start_ms, bucket_end_ms
     ORDER BY bucket
   `;
 
@@ -197,14 +356,25 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     value: parseFloat(row.value || '0'),
   }));
 
-  // 5. Get active nodes by GPU model
-  const activeNodesByModelQuery = `
+  // 5. Get active nodes by GPU model (using overlap logic)
+  const activeNodesByModelQuery = startMs
+    ? `
     SELECT
       COALESCE(gc.gpu_class_name, 'No GPU') as group_name,
       COUNT(DISTINCT np.node_id)::text as value
     FROM node_plan np
     LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
-    WHERE np.stop_at <= $1 ${startMs ? 'AND np.stop_at >= $2' : ''}
+    WHERE np.start_at < $1 AND np.stop_at >= $2
+    GROUP BY gc.gpu_class_name
+    ORDER BY value DESC
+  `
+    : `
+    SELECT
+      COALESCE(gc.gpu_class_name, 'No GPU') as group_name,
+      COUNT(DISTINCT np.node_id)::text as value
+    FROM node_plan np
+    LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
+    WHERE np.start_at < $1
     GROUP BY gc.gpu_class_name
     ORDER BY value DESC
   `;
@@ -215,14 +385,25 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     value: parseFloat(row.value || '0'),
   }));
 
-  // 6. Get active nodes by VRAM
-  const activeNodesByVramQuery = `
+  // 6. Get active nodes by VRAM (using overlap logic)
+  const activeNodesByVramQuery = startMs
+    ? `
     SELECT
       COALESCE(gc.vram_gb::text || ' GB', 'No GPU') as group_name,
       COUNT(DISTINCT np.node_id)::text as value
     FROM node_plan np
     LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
-    WHERE np.stop_at <= $1 ${startMs ? 'AND np.stop_at >= $2' : ''}
+    WHERE np.start_at < $1 AND np.stop_at >= $2
+    GROUP BY gc.vram_gb
+    ORDER BY gc.vram_gb NULLS FIRST
+  `
+    : `
+    SELECT
+      COALESCE(gc.vram_gb::text || ' GB', 'No GPU') as group_name,
+      COUNT(DISTINCT np.node_id)::text as value
+    FROM node_plan np
+    LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
+    WHERE np.start_at < $1
     GROUP BY gc.vram_gb
     ORDER BY gc.vram_gb NULLS FIRST
   `;
@@ -232,6 +413,230 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     group: row.group_name,
     value: parseFloat(row.value || '0'),
   }));
+
+  // 7. Get GPU hours by model TIME SERIES (for stacked charts) - uses overlap logic
+  const gpuHoursByModelTsQuery = startMs
+    ? `
+    WITH buckets AS (
+      SELECT
+        bucket,
+        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
+        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
+      FROM generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($2 / 1000.0)),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
+    )
+    SELECT
+      b.bucket,
+      gc.gpu_class_name as group_name,
+      COALESCE(SUM(GREATEST(0, LEAST(np.stop_at, b.bucket_end_ms) - GREATEST(np.start_at, b.bucket_start_ms)) / ${msPerHour}.0), 0) as value
+    FROM buckets b
+    JOIN node_plan np ON
+      np.start_at < b.bucket_end_ms
+      AND np.stop_at >= b.bucket_start_ms
+      AND np.stop_at <= $1
+      AND np.start_at >= $2 - 86400000::bigint * 30
+      AND np.gpu_class_id IS NOT NULL AND np.gpu_class_id != ''
+    JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
+    GROUP BY b.bucket, gc.gpu_class_name
+    ORDER BY b.bucket, value DESC
+  `
+    : `
+    WITH all_buckets AS (
+      SELECT
+        bucket,
+        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
+        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
+      FROM (SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(stop_at / 1000.0)) as bucket FROM node_plan WHERE stop_at <= $1) x
+    )
+    SELECT
+      b.bucket,
+      gc.gpu_class_name as group_name,
+      COALESCE(SUM(GREATEST(0, LEAST(np.stop_at, b.bucket_end_ms) - GREATEST(np.start_at, b.bucket_start_ms)) / ${msPerHour}.0), 0) as value
+    FROM all_buckets b
+    JOIN node_plan np ON
+      np.start_at < b.bucket_end_ms
+      AND np.stop_at >= b.bucket_start_ms
+      AND np.stop_at <= $1
+      AND np.gpu_class_id IS NOT NULL AND np.gpu_class_id != ''
+    JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
+    GROUP BY b.bucket, gc.gpu_class_name
+    ORDER BY b.bucket, value DESC
+  `;
+
+  const gpuHoursByModelTsResult = await query<GpuTimeSeriesRow>(gpuHoursByModelTsQuery, timeParams);
+  const gpuHoursByModelTs = transformToGroupedTimeSeries(gpuHoursByModelTsResult, timeSeries);
+
+  // 8. Get GPU hours by VRAM TIME SERIES - uses overlap logic
+  const gpuHoursByVramTsQuery = startMs
+    ? `
+    WITH buckets AS (
+      SELECT
+        bucket,
+        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
+        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
+      FROM generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($2 / 1000.0)),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
+    )
+    SELECT
+      b.bucket,
+      gc.vram_gb::text || ' GB' as group_name,
+      COALESCE(SUM(GREATEST(0, LEAST(np.stop_at, b.bucket_end_ms) - GREATEST(np.start_at, b.bucket_start_ms)) / ${msPerHour}.0), 0) as value
+    FROM buckets b
+    JOIN node_plan np ON
+      np.start_at < b.bucket_end_ms
+      AND np.stop_at >= b.bucket_start_ms
+      AND np.stop_at <= $1
+      AND np.start_at >= $2 - 86400000::bigint * 30
+      AND np.gpu_class_id IS NOT NULL AND np.gpu_class_id != ''
+    JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
+    WHERE gc.vram_gb IS NOT NULL
+    GROUP BY b.bucket, gc.vram_gb
+    ORDER BY b.bucket, gc.vram_gb
+  `
+    : `
+    WITH all_buckets AS (
+      SELECT
+        bucket,
+        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
+        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
+      FROM (SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(stop_at / 1000.0)) as bucket FROM node_plan WHERE stop_at <= $1) x
+    )
+    SELECT
+      b.bucket,
+      gc.vram_gb::text || ' GB' as group_name,
+      COALESCE(SUM(GREATEST(0, LEAST(np.stop_at, b.bucket_end_ms) - GREATEST(np.start_at, b.bucket_start_ms)) / ${msPerHour}.0), 0) as value
+    FROM all_buckets b
+    JOIN node_plan np ON
+      np.start_at < b.bucket_end_ms
+      AND np.stop_at >= b.bucket_start_ms
+      AND np.stop_at <= $1
+      AND np.gpu_class_id IS NOT NULL AND np.gpu_class_id != ''
+    JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
+    WHERE gc.vram_gb IS NOT NULL
+    GROUP BY b.bucket, gc.vram_gb
+    ORDER BY b.bucket, gc.vram_gb
+  `;
+
+  const gpuHoursByVramTsResult = await query<GpuTimeSeriesRow>(gpuHoursByVramTsQuery, timeParams);
+  const gpuHoursByVramTs = transformToGroupedTimeSeries(gpuHoursByVramTsResult, timeSeries);
+
+  // 9. Get active nodes by GPU model TIME SERIES - excludes non-GPU workloads
+  // Uses overlap logic: count nodes running during each bucket
+  const activeNodesByModelTsQuery = startMs
+    ? `
+    WITH buckets AS (
+      SELECT generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($2 / 1000.0)),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
+    )
+    SELECT
+      b.bucket,
+      gc.gpu_class_name as group_name,
+      COUNT(DISTINCT np.node_id)::text as value
+    FROM buckets b
+    CROSS JOIN gpu_classes gc
+    LEFT JOIN node_plan np ON
+      np.gpu_class_id = gc.gpu_class_id
+      AND np.start_at < (EXTRACT(EPOCH FROM (b.bucket + interval '${intervalStr}')) * 1000)
+      AND np.stop_at >= (EXTRACT(EPOCH FROM b.bucket) * 1000)
+      AND np.stop_at <= $1
+      AND np.start_at >= $2 - 86400000::bigint * 30
+    WHERE gc.gpu_class_id IS NOT NULL
+    GROUP BY b.bucket, gc.gpu_class_name
+    HAVING COUNT(DISTINCT np.node_id) > 0
+    ORDER BY b.bucket, value DESC
+  `
+    : `
+    WITH all_buckets AS (
+      SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(stop_at / 1000.0)) as bucket
+      FROM node_plan WHERE stop_at <= $1
+    )
+    SELECT
+      b.bucket,
+      gc.gpu_class_name as group_name,
+      COUNT(DISTINCT np.node_id)::text as value
+    FROM all_buckets b
+    CROSS JOIN gpu_classes gc
+    LEFT JOIN node_plan np ON
+      np.gpu_class_id = gc.gpu_class_id
+      AND np.start_at < (EXTRACT(EPOCH FROM (b.bucket + interval '${intervalStr}')) * 1000)
+      AND np.stop_at >= (EXTRACT(EPOCH FROM b.bucket) * 1000)
+      AND np.stop_at <= $1
+    WHERE gc.gpu_class_id IS NOT NULL
+    GROUP BY b.bucket, gc.gpu_class_name
+    HAVING COUNT(DISTINCT np.node_id) > 0
+    ORDER BY b.bucket, value DESC
+  `;
+
+  const activeNodesByModelTsResult = await query<GpuTimeSeriesRow>(activeNodesByModelTsQuery, timeParams);
+  const activeNodesByModelTs = transformToGroupedTimeSeries(activeNodesByModelTsResult, timeSeries);
+
+  // 10. Get active nodes by VRAM TIME SERIES - excludes non-GPU workloads
+  // Uses overlap logic: count nodes running during each bucket
+  const activeNodesByVramTsQuery = startMs
+    ? `
+    WITH buckets AS (
+      SELECT generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($2 / 1000.0)),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
+    ),
+    vram_groups AS (
+      SELECT DISTINCT vram_gb FROM gpu_classes WHERE vram_gb IS NOT NULL
+    )
+    SELECT
+      b.bucket,
+      vg.vram_gb::text || ' GB' as group_name,
+      COUNT(DISTINCT np.node_id)::text as value
+    FROM buckets b
+    CROSS JOIN vram_groups vg
+    LEFT JOIN gpu_classes gc ON gc.vram_gb = vg.vram_gb
+    LEFT JOIN node_plan np ON
+      np.gpu_class_id = gc.gpu_class_id
+      AND np.start_at < (EXTRACT(EPOCH FROM (b.bucket + interval '${intervalStr}')) * 1000)
+      AND np.stop_at >= (EXTRACT(EPOCH FROM b.bucket) * 1000)
+      AND np.stop_at <= $1
+      AND np.start_at >= $2 - 86400000::bigint * 30
+    GROUP BY b.bucket, vg.vram_gb
+    HAVING COUNT(DISTINCT np.node_id) > 0
+    ORDER BY b.bucket, vg.vram_gb
+  `
+    : `
+    WITH all_buckets AS (
+      SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(stop_at / 1000.0)) as bucket
+      FROM node_plan WHERE stop_at <= $1
+    ),
+    vram_groups AS (
+      SELECT DISTINCT vram_gb FROM gpu_classes WHERE vram_gb IS NOT NULL
+    )
+    SELECT
+      b.bucket,
+      vg.vram_gb::text || ' GB' as group_name,
+      COUNT(DISTINCT np.node_id)::text as value
+    FROM all_buckets b
+    CROSS JOIN vram_groups vg
+    LEFT JOIN gpu_classes gc ON gc.vram_gb = vg.vram_gb
+    LEFT JOIN node_plan np ON
+      np.gpu_class_id = gc.gpu_class_id
+      AND np.start_at < (EXTRACT(EPOCH FROM (b.bucket + interval '${intervalStr}')) * 1000)
+      AND np.stop_at >= (EXTRACT(EPOCH FROM b.bucket) * 1000)
+      AND np.stop_at <= $1
+    GROUP BY b.bucket, vg.vram_gb
+    HAVING COUNT(DISTINCT np.node_id) > 0
+    ORDER BY b.bucket, vg.vram_gb
+  `;
+
+  const activeNodesByVramTsResult = await query<GpuTimeSeriesRow>(activeNodesByVramTsQuery, timeParams);
+  const activeNodesByVramTs = transformToGroupedTimeSeries(activeNodesByVramTsResult, timeSeries);
 
   return {
     period,
@@ -247,5 +652,10 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     active_nodes_by_gpu_model: activeNodesByGpuModel,
     active_nodes_by_vram: activeNodesByVram,
     time_series: timeSeries,
+    // Time series grouped by GPU model/VRAM (for stacked charts)
+    gpu_hours_by_model_ts: gpuHoursByModelTs,
+    gpu_hours_by_vram_ts: gpuHoursByVramTs,
+    active_nodes_by_gpu_model_ts: activeNodesByModelTs,
+    active_nodes_by_vram_ts: activeNodesByVramTs,
   };
 }

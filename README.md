@@ -119,6 +119,9 @@ Response includes:
 - `gpu_hours_by_vram`: GPU compute hours grouped by VRAM
 - `active_nodes_by_gpu_model`: Active nodes grouped by GPU model
 - `active_nodes_by_vram`: Active nodes grouped by VRAM
+- `*_ts`: Time series versions of GPU breakdowns for stacked charts
+
+**Time series calculation:** Metrics use overlap-based calculation - compute hours, core hours, RAM hours, and GPU hours are distributed across time buckets based on when jobs were actually running (not just when they completed). This provides smooth, accurate time series data. Fees and transactions are attributed to the bucket when the job completed.
 
 Note: Data has a 2-day offset (data not yet processed by Golem is excluded).
 
@@ -153,6 +156,7 @@ cp frontend/.env.example frontend/.env
 | `CACHE_TTL_STATS` | `3600` | Stats endpoint cache TTL (seconds) |
 | `CACHE_TTL_TRENDS` | `3600` | Trends endpoint cache TTL |
 | `CACHE_TTL_TRANSACTIONS` | `60` | Transactions endpoint cache TTL |
+| `CACHE_TTL_PLAN_STATS` | `3600` | Plan stats endpoint cache TTL |
 
 ### Frontend (`frontend/.env`)
 
