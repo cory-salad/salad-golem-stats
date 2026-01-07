@@ -18,7 +18,7 @@ interface GeoCountsQuery {
 const geoCountsQuerySchema = {
   type: 'object',
   properties: {
-    resolution: { type: 'integer', minimum: 0, maximum: 15, default: 4 },
+    resolution: { type: 'integer', minimum: 0, maximum: 15, default: 3 },
   },
 };
 
@@ -74,7 +74,10 @@ export async function geoRoutes(fastify: FastifyInstance): Promise<void> {
         }
       }
 
-      return result;
+      return {
+        resolution,
+        data: result,
+      };
     }
   );
 }

@@ -92,8 +92,11 @@ function GlobeComponent({ theme, themeMode, geoData }) {
 
   return (
     <div ref={globeContainerRef}>
-      {/* Defensive: only render Globe if geoData is a non-empty array with hex points */}
-      {Array.isArray(geoData) && geoData.length > 0 && geoData.every((d) => d.lat && d.lng) ? (
+      {/* Defensive: only render Globe if geoData has data array with hex points */}
+      {geoData?.data &&
+      Array.isArray(geoData.data) &&
+      geoData.data.length > 0 &&
+      geoData.data.every((d) => d.lat && d.lng) ? (
         <Globe
           ref={globeNetworkRef}
           width={480}
@@ -107,11 +110,11 @@ function GlobeComponent({ theme, themeMode, geoData }) {
           }}
           onPointOfViewChanged={handleGlobeViewChange}
           polygonsData={[]}
-          hexBinPointsData={geoData}
+          hexBinPointsData={geoData.data}
           hexBinPointLat="lat"
           hexBinPointLng="lng"
           hexBinPointWeight="normalized"
-          hexBinResolution={4}
+          hexBinResolution={geoData.resolution || 4}
           enablePointerInteraction={true}
           hexAltitude={hexAltitude}
           hexTopColor={hexTopColor}
