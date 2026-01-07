@@ -736,19 +736,6 @@ export default function Dashboard() {
                       isLoading={isLoading}
                     />
                   </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TrendChart
-                      id="trend-total-transaction-count"
-                      title="Transaction Count"
-                      description="Total number of compute transactions between customers and providers."
-                      trendWindow={globalTimeWindow}
-                      setTrendWindow={() => {}}
-                      trendData={transformTimeSeries(plansData.time_series, 'transactions')}
-                      unit=""
-                      unitType="below"
-                      isLoading={isLoading}
-                    />
-                  </Grid>
                 </>
               ) : (
                 <Typography variant="body2" color="textSecondary">
