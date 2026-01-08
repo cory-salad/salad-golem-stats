@@ -1,6 +1,6 @@
 #!/bin/bash
 # Setup script for Salad Stats Dashboard
-# This script initializes the database with all required data
+# This script initializes the database with schema and imports data
 
 set -e
 
@@ -35,14 +35,8 @@ done
 echo -e "${GREEN}Database is ready.${NC}"
 echo ""
 
-# Step 3: Load the base data dump (statsdb_dump.sql)
-echo -e "${YELLOW}Step 3: Loading base data dump...${NC}"
-docker compose exec -T db psql -U devuser -d statsdb -f /data/statsdb_dump.sql > /dev/null 2>&1 || true
-echo -e "${GREEN}Base data loaded.${NC}"
-echo ""
-
-# Step 4: Apply migrations (including new plans tables)
-echo -e "${YELLOW}Step 4: Applying database migrations...${NC}"
+# Step 3: Apply migrations (creates schema)
+echo -e "${YELLOW}Step 3: Applying database migrations...${NC}"
 for migration in db/migrations/*.sql; do
     if [ -f "$migration" ]; then
         filename=$(basename "$migration")
@@ -53,8 +47,8 @@ done
 echo -e "${GREEN}Migrations applied.${NC}"
 echo ""
 
-# Step 5: Import plans.db data
-echo -e "${YELLOW}Step 5: Importing plans data from SQLite...${NC}"
+# Step 4: Import plans.db data
+echo -e "${YELLOW}Step 4: Importing plans data from SQLite...${NC}"
 if [ -f "db/plans.db" ]; then
     # Check if Python and dependencies are available
     if command -v python3 &> /dev/null; then
@@ -72,8 +66,8 @@ else
 fi
 echo ""
 
-# Step 6: Clear Redis cache
-echo -e "${YELLOW}Step 6: Clearing Redis cache...${NC}"
+# Step 5: Clear Redis cache
+echo -e "${YELLOW}Step 5: Clearing Redis cache...${NC}"
 docker compose exec -T redis redis-cli FLUSHALL > /dev/null 2>&1 || true
 echo -e "${GREEN}Cache cleared.${NC}"
 echo ""
@@ -87,6 +81,12 @@ echo "  Frontend: http://localhost:5173"
 echo "  Backend:  http://localhost:8000"
 echo "  Postgres: localhost:5432"
 echo "  Redis:    localhost:6379"
+echo ""
+echo "To populate additional data, run:"
+echo "  cd data-collection"
+echo "  python get_gpu_classes.py            # GPU class reference data"
+echo "  python get_globe_data.py             # City geo snapshots"
+echo "  python generate_placeholder_transactions.py  # Demo transactions"
 echo ""
 echo "To view logs: docker compose logs -f"
 echo "To stop:      docker compose down"
