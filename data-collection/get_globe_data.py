@@ -339,7 +339,7 @@ def save_data_to_database(output_rows_city, output_rows_country):
             cur.execute("DELETE FROM city_snapshots")
             cur.execute("DELETE FROM country_snapshots")
             print("Database tables cleared.")
-            
+
             # Insert city data
             for loc in output_rows_city:
                 lat = safe_float(loc["lat"])
@@ -359,35 +359,37 @@ def save_data_to_database(output_rows_city, output_rows_country):
                 else:
                     skipped_cities.append(loc)
 
-            # Insert country data
-            for loc in output_rows_country:
-                lat = safe_float(loc["lat"])
-                lon = safe_float(loc["lon"])
-                if lat is not None and lon is not None:
-                    cur.execute(
-                        """
-                        INSERT INTO country_snapshots (ts, name, count, lat, long)
-                        VALUES (%s, %s, %s, %s, %s)
-                        ON CONFLICT (ts, name) DO UPDATE
-                        SET count = EXCLUDED.count,
-                            lat = EXCLUDED.lat,
-                            long = EXCLUDED.long
-                        """,
-                        (ts, loc["country"], loc["count"], lat, lon),
-                    )
-                else:
-                    skipped_countries.append(loc)
-
     pg_conn.close()
 
     if skipped_cities:
         print("Skipped cities with missing coordinates:")
         for loc in skipped_cities:
             print(loc)
-    if skipped_countries:
-        print("Skipped countries with missing coordinates:")
-        for loc in skipped_countries:
-            print(loc)
+
+
+def main(filter_is_running=False, filter_has_workload=False, filter_organizations=[]):
+    """Main function that orchestrates the entire data processing pipeline"""
+    print("Starting globe data processing...")
+
+    # 1. Get the data
+    print("1. Fetching node data from MongoDB...")
+    city_counter = get_node_data(
+        filter_is_running, filter_has_workload, filter_organizations
+    )
+
+    # 2. Add lat/long coordinates to the data
+    print("2. Adding latitude/longitude coordinates...")
+    output_rows_city = add_lat_long_to_data(city_counter)
+
+    # 3. Save the data to files
+    print("3. Saving data to CSV files...")
+    save_data_to_files(output_rows_city)
+
+    # 4. Put the data in the database
+    print("4. Saving data to PostgreSQL database...")
+    save_data_to_database(output_rows_city, output_rows_country)
+
+    print("Globe data processing complete!")
 
 
 def main(filter_is_running=False, filter_has_workload=False, filter_organizations=[]):

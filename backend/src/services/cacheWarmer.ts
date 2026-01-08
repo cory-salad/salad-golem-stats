@@ -86,5 +86,17 @@ export function stopCacheWarmer(): void {
   }
 }
 
+// Check if all required cache keys exist
+export async function isCacheReady(): Promise<boolean> {
+  const redis = getRedisClient();
+  if (!redis) {
+    return false;
+  }
+
+  const cacheKeys = PERIODS.map((period) => generateCacheKey(period));
+  const count = await redis.exists(cacheKeys);
+  return count === PERIODS.length;
+}
+
 // Manual trigger for testing
 export { warmCache };
