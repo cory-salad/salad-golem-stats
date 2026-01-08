@@ -18,10 +18,9 @@ Run the setup script to start all services and load data:
 
 This will:
 1. Start all Docker services
-2. Load the base data dump (`statsdb_dump.sql`)
-3. Apply all database migrations
-4. Import plans data from `db/plans.db`
-5. Clear the Redis cache
+2. Apply all database migrations
+3. Import plans data from `db/plans.db`
+4. Clear the Redis cache
 
 Services will be available at:
 - **Frontend:** http://localhost:5173
@@ -37,11 +36,10 @@ If you prefer manual setup:
 # Start services
 docker compose up -d --build
 
-# Load base data
-docker compose exec db psql -U devuser -d statsdb -f /data/statsdb_dump.sql
-
 # Apply migrations
-docker compose exec db psql -U devuser -d statsdb -f /data/migrations/002_plans_tables.sql
+for f in db/migrations/*.sql; do
+  docker compose exec db psql -U devuser -d statsdb -f "/data/migrations/$(basename $f)"
+done
 
 # Import plans data (requires Python)
 cd data-collection
@@ -101,19 +99,17 @@ docker compose -f docker-compose.prod.yaml up -d --build
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /metrics/plans` | Plan metrics with time series (primary endpoint) |
-| `GET /metrics/stats` | Summary statistics (legacy) |
-| `GET /metrics/trends` | Time series data (legacy) |
+| `GET /metrics/plans` | Plan metrics with time series |
 | `GET /metrics/geo_counts` | H3 hexagon-aggregated geo data |
 | `GET /metrics/transactions` | Paginated transaction records |
 
-### `/metrics/plans` (Primary)
+### `/metrics/plans`
 
 Query parameters:
 - `period`: `6h`, `24h`, `7d`, `30d`, `90d`, `total` (default: `7d`)
 
 Response includes:
-- `totals`: active_nodes, total_fees, compute_hours, transactions, core_hours, ram_hours, gpu_hours
+- `totals`: active_nodes, total_fees, compute_hours, core_hours, ram_hours, gpu_hours
 - `time_series`: Hourly/daily breakdown of all metrics
 - `gpu_hours_by_model`: GPU compute hours grouped by model
 - `gpu_hours_by_vram`: GPU compute hours grouped by VRAM
@@ -121,15 +117,9 @@ Response includes:
 - `active_nodes_by_vram`: Active nodes grouped by VRAM
 - `*_ts`: Time series versions of GPU breakdowns for stacked charts
 
-**Time series calculation:** Metrics use overlap-based calculation - compute hours, core hours, RAM hours, and GPU hours are distributed across time buckets based on when jobs were actually running (not just when they completed). This provides smooth, accurate time series data. Fees and transactions are attributed to the bucket when the job completed.
+**Time series calculation:** Metrics use overlap-based calculation - compute hours, core hours, RAM hours, and GPU hours are distributed across time buckets based on when jobs were actually running (not just when they completed). This provides smooth, accurate time series data. Fees are attributed to the bucket when the job completed.
 
 Note: Data has a 2-day offset (data not yet processed by Golem is excluded).
-
-### Legacy Endpoints
-
-Query parameters for `/metrics/stats` and `/metrics/trends`:
-- `period`: `day`, `week`, `two_weeks`, `month`
-- `gpu`: `all`, `any_gpu`, `no_gpu`, or specific GPU class ID
 
 ## Environment Variables
 
@@ -153,8 +143,7 @@ cp frontend/.env.example frontend/.env
 | `REDIS_HOST` | `localhost` | Redis host |
 | `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_DB` | `0` | Redis database number |
-| `CACHE_TTL_STATS` | `3600` | Stats endpoint cache TTL (seconds) |
-| `CACHE_TTL_TRENDS` | `3600` | Trends endpoint cache TTL |
+| `CACHE_TTL_GEO` | `86400` | Geo counts endpoint cache TTL (seconds) |
 | `CACHE_TTL_TRANSACTIONS` | `60` | Transactions endpoint cache TTL |
 | `CACHE_TTL_PLAN_STATS` | `3600` | Plan stats endpoint cache TTL |
 | `CACHE_WARMER_ENABLED` | `true` | Enable proactive cache warming |
@@ -170,7 +159,7 @@ cp frontend/.env.example frontend/.env
 
 ### Data Collection (`data-collection/.env`)
 
-Required for running data ingestion scripts:
+Required for running data ingestion scripts. Note that some scripts require internal Salad credentials and are primarily for internal use.
 
 ```
 POSTGRES_USER=devuser
@@ -178,17 +167,6 @@ POSTGRES_PASSWORD=devpass
 POSTGRES_HOST=localhost
 POSTGRES_DB=statsdb
 POSTGRES_PORT=5432
-
-# MongoDB credentials (for get_data.py)
-MONGOUSER=
-MONGOPASS=
-MONGO_URL=matrix-production-1.qltsap.mongodb.net
-DBNAME=matrix
-
-# Strapi credentials
-STRAPIURL=https://cms-api.salad.io
-STRAPIID=
-STRAPIPW=
 ```
 
 ## Development
