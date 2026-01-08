@@ -20,8 +20,6 @@ export const config = {
   frontendOrigins: (process.env.FRONTEND_ORIGINS || 'http://localhost:5173').split(','),
 
   cacheTtl: {
-    stats: parseInt(process.env.CACHE_TTL_STATS || '3600', 10),
-    trends: parseInt(process.env.CACHE_TTL_TRENDS || '3600', 10),
     geo_counts: parseInt(process.env.CACHE_TTL_GEO || '86400', 10),
     transactions: parseInt(process.env.CACHE_TTL_TRANSACTIONS || '60', 10),
     plan_stats: parseInt(process.env.CACHE_TTL_PLAN_STATS || '3600', 10),

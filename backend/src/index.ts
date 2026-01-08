@@ -4,7 +4,7 @@ import { config } from './config.js';
 import { initRedis } from './cache/redis.js';
 import { loadGpuClassNames } from './services/gpuClasses.js';
 import { registerRoutes } from './routes/index.js';
-import { startCacheWarmer } from './services/cacheWarmer.js';
+import { startCacheWarmer, isCacheReady } from './services/cacheWarmer.js';
 
 async function main() {
   const fastify = Fastify({
@@ -24,6 +24,15 @@ async function main() {
 
   // Load GPU class names
   await loadGpuClassNames();
+
+  // Health check - returns 503 until cache is warmed
+  fastify.get('/health', async (request, reply) => {
+    const ready = await isCacheReady();
+    if (!ready) {
+      return reply.status(503).send({ status: 'warming' });
+    }
+    return { status: 'ok' };
+  });
 
   // Register routes
   await registerRoutes(fastify);
