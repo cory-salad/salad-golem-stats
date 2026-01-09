@@ -1,6 +1,6 @@
 # Salad Stats Dashboard
 
-A dashboard for visualizing network statistics for SaladCloud's testing on the Golem Network. It includes a React frontend, a TypeScript/Node backend, PostgreSQL database, Redis caching, and a plan importer service for ingesting data from MixPanel.
+A dashboard for visualizing network statistics for SaladCloud's testing on the Golem Network. It includes a React frontend, a TypeScript/Node backend, PostgreSQL database, Redis caching, a plan importer service for ingesting data from MixPanel, and a transaction importer for tracking GLM token payments on Polygon.
 
 ## Getting Started
 
@@ -29,6 +29,7 @@ Services will be available at:
 - **PostgreSQL:** localhost:5432
 - **Redis:** localhost:6379
 - **Plan Importer:** Runs in background, importing data every 6 hours
+- **Transaction Importer:** Runs continuously, importing GLM transactions from Polygon (health check at http://localhost:3001/health)
 
 ### Manual Setup
 
@@ -91,6 +92,16 @@ docker compose exec db psql -U devuser -d statsdb
 │   ├── jql/                  # MixPanel JQL query files
 │   ├── Dockerfile
 │   └── package.json
+├── transaction-importer/     # GLM token transaction importer
+│   ├── src/
+│   │   ├── index.ts          # Service entry point
+│   │   ├── config.ts         # Environment configuration
+│   │   ├── etherscan.ts      # Etherscan V2 API client
+│   │   ├── importer.ts       # Transaction import logic
+│   │   ├── db.ts             # Database connection
+│   │   └── logger.ts         # Pino logger
+│   ├── Dockerfile
+│   └── package.json
 ├── db/
 │   └── migrations/           # SQL migration files
 └── data-collection/          # Python scripts for data ingestion
@@ -131,6 +142,7 @@ Each service has its own `.env` file. Copy the example files to get started:
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 cp plan-importer/.env.example plan-importer/.env
+cp transaction-importer/.env.example transaction-importer/.env
 ```
 
 ### Backend (`backend/.env`)
@@ -173,6 +185,25 @@ cp plan-importer/.env.example plan-importer/.env
 | `DATA_DIRECTORY` | `./data` | Directory for JSON file staging |
 | `MINIMUM_DURATION` | `600000` | Minimum plan duration in ms (10 min) |
 | `IMPORT_INTERVAL` | `21600000` | Import interval in ms (6 hours) |
+
+### Transaction Importer (`transaction-importer/.env`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MASTER_WALLET_ADDRESS` | (required) | Master wallet address that funds requester wallets |
+| `ETHERSCAN_API_KEY` | (required) | Etherscan API key (get from https://etherscan.io/myapikey) |
+| `ETHERSCAN_CHAIN_ID` | `137` | Chain ID (137 = Polygon, 1 = Ethereum mainnet) |
+| `ETHERSCAN_RATE_LIMIT` | `3` | API rate limit (calls per second, free tier = 3) |
+| `GLM_CONTRACT_ADDRESS` | `0x0B220b82F3eA3B7F6d9A1D8ab58930C064A2b5Bf` | GLM token contract address |
+| `POSTGRES_HOST` | `localhost` | Database host |
+| `POSTGRES_PORT` | `5432` | Database port |
+| `POSTGRES_DB` | `statsdb` | Database name |
+| `POSTGRES_USER` | `devuser` | Database user |
+| `POSTGRES_PASSWORD` | `devpass` | Database password |
+| `INITIAL_LOOKBACK_DAYS` | `90` | How far back to look for transactions on first run |
+| `LOG_LEVEL` | `info` | Log level (debug, info, warn, error) |
+
+The transaction importer discovers requester wallets by tracking outgoing GLM transfers from the master wallet, then imports all provider payments from those requester wallets. It runs continuously with rate limiting to respect Etherscan's API limits.
 
 ### Data Collection (`data-collection/.env`)
 
