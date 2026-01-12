@@ -11,6 +11,58 @@ interface DateRange {
 }
 
 /**
+ * Build the JQL query script with optional org name filter.
+ */
+function buildJqlScript(date: string, orgNames: readonly string[]): string {
+  const orgFilterClause =
+    orgNames.length > 0
+      ? `var allowedOrgs = ${JSON.stringify(orgNames)};`
+      : '';
+
+  const orgFilterCondition =
+    orgNames.length > 0 ? ' && allowedOrgs.indexOf(e.properties.OrganizationName) !== -1' : '';
+
+  return `
+function main() {
+  ${orgFilterClause}
+  return Events({
+    from_date: "${date}",
+    to_date: "${date}",
+    event_selectors: [{ event: "Workload Earning" }]
+  })
+  .filter(function(e) {
+    return e.properties.InvoiceAmount > 0${orgFilterCondition};
+  })
+  .groupBy(
+    [
+      "properties.OrganizationName",
+      "properties.ContainerGroupSlug",
+      "properties.MachineId"
+    ],
+    [
+      mixpanel.reducer.min("time"),
+      mixpanel.reducer.max("time"),
+      mixpanel.reducer.sum("properties.InvoiceAmount"),
+      mixpanel.reducer.max("properties.WorkloadCpuLimit"),
+      mixpanel.reducer.max("properties.WorkloadMemoryLimitMb"),
+      function(accumulators, events) {
+        var result = accumulators.find(function(x) { return typeof x === 'string'; });
+        if (typeof result === 'string') {
+          return result;
+        }
+        result = events.find(function(x) { return x !== null && x !== undefined && typeof x.properties.WorkloadGpuClassUuid === 'string'; });
+        if (result === null || result === undefined) {
+          return null;
+        }
+        return result.properties.WorkloadGpuClassUuid;
+      }
+    ]
+  );
+}
+`;
+}
+
+/**
  * Get the previous n day ranges based on Mountain Time.
  */
 function getPreviousDayRanges(n: number, baseDate?: Date): DateRange[] {
@@ -43,6 +95,10 @@ function getPreviousDayRanges(n: number, baseDate?: Date): DateRange[] {
 export async function fetchMixpanelJql(): Promise<void> {
   const ranges = getPreviousDayRanges(2);
 
+  if (config.orgNameFilter.length > 0) {
+    logger.info(`Org name filter active: ${config.orgNameFilter.join(', ')}`);
+  }
+
   const importedDir = path.join(config.dataDirectory, 'imported');
   const pendingDir = path.join(config.dataDirectory, 'pending');
 
@@ -62,23 +118,10 @@ export async function fetchMixpanelJql(): Promise<void> {
 
     logger.info(`Fetching data for ${filename} from MixPanel JQL API...`);
 
-    const jqlQuery = await fs.readFile(
-      path.join(import.meta.dirname, '..', 'jql', 'earnings-query.jql'),
-      'utf-8'
-    );
+    const jqlScript = buildJqlScript(end, config.orgNameFilter);
 
     const encodedParams = new URLSearchParams();
-    encodedParams.set('script', jqlQuery);
-    encodedParams.set(
-      'params',
-      JSON.stringify({
-        from_date: end,
-        to_date: end,
-        event_selectors: [
-          { event: 'Workload Earning', selector: 'properties["InvoiceAmount"] > 0' },
-        ],
-      })
-    );
+    encodedParams.set('script', jqlScript);
 
     const response = await fetch(config.mixpanel.jqlUrl, {
       method: 'POST',

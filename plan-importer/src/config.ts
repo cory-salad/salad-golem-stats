@@ -21,4 +21,9 @@ export const config = {
 
   // Import interval in ms (6 hours)
   importInterval: parseInt(process.env.IMPORT_INTERVAL || '21600000', 10),
+
+  // Optional org name filter (comma-separated list)
+  orgNameFilter: process.env.ORG_NAME_FILTER
+    ? process.env.ORG_NAME_FILTER.split(',').map((s) => s.trim()).filter(Boolean)
+    : [],
 } as const;

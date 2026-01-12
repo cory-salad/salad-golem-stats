@@ -75,8 +75,20 @@ export async function importPlans(): Promise<void> {
       // Process each row
       let importedCount = 0;
       let skippedCount = 0;
+      let filteredCount = 0;
+
+      const orgFilter = config.orgNameFilter;
+      const hasOrgFilter = orgFilter.length > 0;
 
       for (const row of jsonData) {
+        const orgName = row.key[JSON_KEYS.ORG_NAME];
+
+        // Skip if org name filter is set and this org is not in the list
+        if (hasOrgFilter && !orgFilter.includes(orgName)) {
+          filteredCount++;
+          continue;
+        }
+
         const startAt = row.value[JSON_KEYS.START_AT];
         const stopAt = row.value[JSON_KEYS.STOP_AT];
         const duration = stopAt - startAt;
@@ -114,7 +126,8 @@ export async function importPlans(): Promise<void> {
 
       await client.query('COMMIT');
       logger.info(
-        `${jsonFile} processed: ${importedCount} rows imported, ${skippedCount} skipped (below minimum duration)`
+        `${jsonFile} processed: ${importedCount} rows imported, ${skippedCount} skipped (below minimum duration)` +
+          (filteredCount > 0 ? `, ${filteredCount} filtered (org name)` : '')
       );
 
       // Move to imported folder
