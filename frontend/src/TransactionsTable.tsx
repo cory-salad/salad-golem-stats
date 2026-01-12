@@ -257,10 +257,6 @@ export default function TransactionsTable() {
           return v !== undefined && v !== null ? v.toFixed(4) : '';
         },
       },
-      {
-        accessorKey: 'tx_type',
-        header: 'Type',
-      },
     ],
     [sortBy, sortOrder],
   );
