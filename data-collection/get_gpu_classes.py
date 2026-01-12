@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import csv
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -68,52 +69,34 @@ def main():
         }
         gpu_classes_data.append(gpu_data)
 
-    # Create export structure compatible with import_gpu_classes.py
-    export_data = {
-        "export_metadata": {
-            "timestamp": datetime.now().isoformat(),
-            "source_database": f"Strapi CMS ({strapi_url})",
-            "record_count": len(gpu_classes_data),
-            "export_type": "gpu_classes",
-            "schema": {
-                "table_name": "gpu_classes",
-                "columns": [
-                    {"name": "gpu_class_id", "type": "TEXT", "nullable": False},
-                    {
-                        "name": "batch_price",
-                        "type": "DOUBLE PRECISION",
-                        "nullable": True,
-                    },
-                    {"name": "low_price", "type": "DOUBLE PRECISION", "nullable": True},
-                    {
-                        "name": "medium_price",
-                        "type": "DOUBLE PRECISION",
-                        "nullable": True,
-                    },
-                    {
-                        "name": "high_price",
-                        "type": "DOUBLE PRECISION",
-                        "nullable": True,
-                    },
-                    {"name": "gpu_type", "type": "TEXT", "nullable": True},
-                    {"name": "gpu_class_name", "type": "TEXT", "nullable": False},
-                    {"name": "vram_gb", "type": "INTEGER", "nullable": True},
-                ],
-            },
-        },
-        "data": gpu_classes_data,
-    }
+    # Write to CSV file for pgAdmin import
+    csv_filename = "gpu_classes.csv"
+    with open(csv_filename, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
 
-    # Write to JSON file
-    output_file = "gpu_classes_export.json"
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(export_data, f, indent=2, ensure_ascii=False)
+        for gpu_data in gpu_classes_data:
+            writer.writerow(
+                [
+                    gpu_data["gpu_class_id"],
+                    gpu_data["batch_price"],
+                    gpu_data["low_price"],
+                    gpu_data["medium_price"],
+                    gpu_data["high_price"],
+                    gpu_data["gpu_type"],
+                    gpu_data["gpu_class_name"],
+                    gpu_data["vram_gb"],
+                ]
+            )
 
-    print(f"✅ Exported {len(gpu_classes_data)} GPU classes to {output_file}")
+    print(f"✅ Exported {len(gpu_classes_data)} GPU classes to {csv_filename}")
     print(f"📊 Source: {strapi_url}")
-    print(f"🕒 Export time: {export_data['export_metadata']['timestamp']}")
-    print(f"\nTo import into database, run:")
-    print(f"  python import_gpu_classes.py {output_file}")
+    print(f"🕒 Export time: {datetime.now().isoformat()}")
+    print(f"\\nFor pgAdmin import:")
+    print(f"  Table: gpu_classes")
+    print(
+        f"  Columns: gpu_class_id, batch_price, low_price, medium_price, high_price, gpu_type, gpu_class_name, vram_gb"
+    )
+    print(f"  File: {csv_filename}")
 
 
 if __name__ == "__main__":
