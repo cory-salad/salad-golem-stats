@@ -51,9 +51,13 @@ export async function transactionsRoutes(
       const sortBy = request.query.sort_by ?? "time";
       const sortOrder = request.query.sort_order ?? "desc";
 
+      // Only show requester-to-provider transactions (not master-to-requester funding)
+      const txTypeFilter = "requester_to_provider";
+
       // Count total transactions
       const totalRow = await queryOne<{ count: string }>(
-        "SELECT COUNT(*) as count FROM glm_transactions"
+        "SELECT COUNT(*) as count FROM glm_transactions WHERE tx_type = $1",
+        [txTypeFilter]
       );
       const total = parseInt(totalRow?.count ?? "0", 10);
 
@@ -82,17 +86,18 @@ export async function transactionsRoutes(
       let sql = `
         SELECT tx_hash, block_number, block_timestamp, from_address, to_address, value_glm, tx_type
         FROM glm_transactions
+        WHERE tx_type = $1
       `;
-      const params: unknown[] = [];
+      const params: unknown[] = [txTypeFilter];
 
       if (direction === "next") {
         if (cursor) {
-          sql += ` WHERE ${sortColumn} < $1`;
+          sql += ` AND ${sortColumn} < $2`;
           params.push(cursor);
         }
       } else {
         if (cursor) {
-          sql += ` WHERE ${sortColumn} > $1`;
+          sql += ` AND ${sortColumn} > $2`;
           params.push(cursor);
         }
       }
@@ -136,8 +141,8 @@ export async function transactionsRoutes(
         if (direction === "next") {
           // Check if there are older records
           const olderCount = await queryOne<{ count: string }>(
-            `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} < $1`,
-            [lastCursor]
+            `SELECT COUNT(*) as count FROM glm_transactions WHERE tx_type = $1 AND ${sortColumn} < $2`,
+            [txTypeFilter, lastCursor]
           );
           if (parseInt(olderCount?.count ?? "0", 10) > 0) {
             nextCursor = lastCursor;
@@ -145,8 +150,8 @@ export async function transactionsRoutes(
 
           // Check if there are newer records
           const newerCount = await queryOne<{ count: string }>(
-            `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} > $1`,
-            [firstCursor]
+            `SELECT COUNT(*) as count FROM glm_transactions WHERE tx_type = $1 AND ${sortColumn} > $2`,
+            [txTypeFilter, firstCursor]
           );
           if (parseInt(newerCount?.count ?? "0", 10) > 0) {
             prevCursor = firstCursor;
@@ -155,8 +160,8 @@ export async function transactionsRoutes(
           if (cursor) {
             // Check if there are newer records
             const newerCount = await queryOne<{ count: string }>(
-              `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} > $1`,
-              [firstCursor]
+              `SELECT COUNT(*) as count FROM glm_transactions WHERE tx_type = $1 AND ${sortColumn} > $2`,
+              [txTypeFilter, firstCursor]
             );
             if (parseInt(newerCount?.count ?? "0", 10) > 0) {
               prevCursor = firstCursor;
@@ -164,8 +169,8 @@ export async function transactionsRoutes(
 
             // Check if there are older records
             const olderCount = await queryOne<{ count: string }>(
-              `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} < $1`,
-              [lastCursor]
+              `SELECT COUNT(*) as count FROM glm_transactions WHERE tx_type = $1 AND ${sortColumn} < $2`,
+              [txTypeFilter, lastCursor]
             );
             if (parseInt(olderCount?.count ?? "0", 10) > 0) {
               nextCursor = lastCursor;
@@ -173,8 +178,8 @@ export async function transactionsRoutes(
           } else {
             // "Last" page - check if there are newer records
             const newerCount = await queryOne<{ count: string }>(
-              `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} > $1`,
-              [firstCursor]
+              `SELECT COUNT(*) as count FROM glm_transactions WHERE tx_type = $1 AND ${sortColumn} > $2`,
+              [txTypeFilter, firstCursor]
             );
             if (parseInt(newerCount?.count ?? "0", 10) > 0) {
               prevCursor = firstCursor;
