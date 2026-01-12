@@ -81,7 +81,9 @@ export default function TransactionsTable() {
       params.append('sort_order', opts.sortOrder ?? sortOrder);
       fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/transactions?${params.toString()}`)
         .then((res) =>
-          res.ok ? (res.json() as Promise<TransactionsResponse>) : Promise.reject('Failed to fetch transactions'),
+          res.ok
+            ? (res.json() as Promise<TransactionsResponse>)
+            : Promise.reject('Failed to fetch transactions'),
         )
         .then((data) => {
           if (data.transactions && data.transactions.length > 0) {

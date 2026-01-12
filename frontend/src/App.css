@@ -1,6 +1,7 @@
 /* Custom MenuItem hover for green background */
-.MuiMenuItem-root:hover, .MuiMenuItem-root.Mui-selected {
-  background-color: rgb(83,166,38) !important;
+.MuiMenuItem-root:hover,
+.MuiMenuItem-root.Mui-selected {
+  background-color: rgb(83, 166, 38) !important;
   color: #fff !important;
 }
 

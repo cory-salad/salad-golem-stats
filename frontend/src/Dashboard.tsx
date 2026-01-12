@@ -67,7 +67,9 @@ function usePlansMetrics(period = '7d') {
     setIsLoading(true);
     fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/plans?period=${period}`)
       .then((res) =>
-        res.ok ? (res.json() as Promise<PlansMetricsData>) : Promise.reject('Failed to fetch plans metrics'),
+        res.ok
+          ? (res.json() as Promise<PlansMetricsData>)
+          : Promise.reject('Failed to fetch plans metrics'),
       )
       .then((result) => {
         if (!cancelled) {
@@ -486,13 +488,15 @@ export default function Dashboard() {
           top: 0,
           left: 0,
           height: 64,
-          bgcolor: (theme.palette as { salad?: { navy?: string } }).salad?.navy || saladPalette.navy,
+          bgcolor:
+            (theme.palette as { salad?: { navy?: string } }).salad?.navy || saladPalette.navy,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           px: 3,
           borderBottom: '4px solid',
-          borderColor: (theme.palette as { salad?: { navy?: string } }).salad?.navy || saladPalette.navy,
+          borderColor:
+            (theme.palette as { salad?: { navy?: string } }).salad?.navy || saladPalette.navy,
           zIndex: 1200,
           boxSizing: 'border-box',
         }}

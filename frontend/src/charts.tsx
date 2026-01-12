@@ -273,10 +273,19 @@ export function TrendChart({
       chart.data.datasets = [dataset];
       const options = chart.options as ChartOptions<'line'>;
       if (options.scales?.x) {
-        (options.scales.x as { type?: string; offset?: boolean; bounds?: string; time?: { unit?: string; displayFormats?: Record<string, string> } }).type = 'time';
+        (
+          options.scales.x as {
+            type?: string;
+            offset?: boolean;
+            bounds?: string;
+            time?: { unit?: string; displayFormats?: Record<string, string> };
+          }
+        ).type = 'time';
         (options.scales.x as { offset?: boolean }).offset = true;
         (options.scales.x as { bounds?: string }).bounds = 'data';
-        (options.scales.x as { time?: { unit?: string; displayFormats?: Record<string, string> } }).time = {
+        (
+          options.scales.x as { time?: { unit?: string; displayFormats?: Record<string, string> } }
+        ).time = {
           unit: isHourlyGranularity(trendWindow) ? 'hour' : 'day',
           displayFormats: {
             hour: 'MMM d, HH:mm',
@@ -296,7 +305,9 @@ export function TrendChart({
           }
           if (yFormat.suffix === 'k') {
             // For k, always show at most 1 decimal
-            return v % 1 === 0 ? v + yFormat.suffix : v.toFixed(1).replace(/\.0$/, '') + yFormat.suffix;
+            return v % 1 === 0
+              ? v + yFormat.suffix
+              : v.toFixed(1).replace(/\.0$/, '') + yFormat.suffix;
           }
           if (Math.abs(v) < 10) return v.toFixed(2).replace(/\.?0+$/, '') + yFormat.suffix;
           if (Math.abs(v) < 100) return v.toFixed(1).replace(/\.?0+$/, '') + yFormat.suffix;
@@ -337,7 +348,10 @@ export function TrendChart({
       // Update tooltip config with current theme and timestamps
       const originalTimestamps = trendData.map((d) => d.x);
       if (options.plugins?.tooltip) {
-        Object.assign(options.plugins.tooltip, getTooltipConfig(isDarkMode, originalTimestamps, trendWindow));
+        Object.assign(
+          options.plugins.tooltip,
+          getTooltipConfig(isDarkMode, originalTimestamps, trendWindow),
+        );
       }
       chart.update('none');
     }
@@ -346,7 +360,10 @@ export function TrendChart({
   // Value display logic
   const lastValue = trendData.length > 0 ? trendData[trendData.length - 1].y : null;
 
-  function formatValue(val: number | null, unit: string | undefined): { value: string; unit: string | undefined } {
+  function formatValue(
+    val: number | null,
+    unit: string | undefined,
+  ): { value: string; unit: string | undefined } {
     if (val === null || val === undefined) return { value: '--', unit };
     // If unit is 'count', always show as integer, no decimals or suffixes
     if (unit === 'count' || unit === 'nodes') {
@@ -665,7 +682,16 @@ export function StackedChart({
         const originalTimestamps = chartData?.labels || [];
         chartRef.current = new Chart(ctx, {
           type: 'line',
-          data: internalChartData as { datasets: { label: string; data: { x: number | string; y: number }[]; backgroundColor: string; borderColor: string; borderWidth: number; fill: boolean }[] },
+          data: internalChartData as {
+            datasets: {
+              label: string;
+              data: { x: number | string; y: number }[];
+              backgroundColor: string;
+              borderColor: string;
+              borderWidth: number;
+              fill: boolean;
+            }[];
+          },
           options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -728,7 +754,9 @@ export function StackedChart({
                     }
                     if (localYFormat.suffix === 'k') {
                       // For k, show one decimal if not integer
-                      return v % 1 === 0 ? v + localYFormat.suffix : v.toFixed(1) + localYFormat.suffix;
+                      return v % 1 === 0
+                        ? v + localYFormat.suffix
+                        : v.toFixed(1) + localYFormat.suffix;
                     }
                     if (Math.abs(v) < 10)
                       return v.toFixed(2).replace(/\.?0+$/, '') + localYFormat.suffix;
@@ -746,13 +774,26 @@ export function StackedChart({
     } else {
       const chart = chartRef.current;
       if (internalChartData) {
-        chart.data = internalChartData as { datasets: { label: string; data: { x: number | string; y: number }[]; backgroundColor: string; borderColor: string; borderWidth: number; fill: boolean }[] };
+        chart.data = internalChartData as {
+          datasets: {
+            label: string;
+            data: { x: number | string; y: number }[];
+            backgroundColor: string;
+            borderColor: string;
+            borderWidth: number;
+            fill: boolean;
+          }[];
+        };
         const options = chart.options as ChartOptions<'line'>;
         if (options.scales?.x) {
           (options.scales.x as { type?: string }).type = 'time';
           (options.scales.x as { offset?: boolean }).offset = true;
           (options.scales.x as { bounds?: string }).bounds = 'data';
-          (options.scales.x as { time?: { unit?: string; displayFormats?: Record<string, string> } }).time = {
+          (
+            options.scales.x as {
+              time?: { unit?: string; displayFormats?: Record<string, string> };
+            }
+          ).time = {
             unit: isHourlyGranularity(trendWindow) ? 'hour' : 'day',
             displayFormats: {
               hour: 'MMM d, HH:mm',

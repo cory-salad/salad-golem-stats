@@ -41,9 +41,9 @@ export default function MetricsBar({ metrics = [] }: MetricsBarProps) {
   const isDark = theme.palette.mode === 'dark';
   const brightGreen =
     (theme.palette as { lime?: string }).lime ||
-    ((theme.palette as { salad?: { lime?: string } }).salad?.lime) ||
+    (theme.palette as { salad?: { lime?: string } }).salad?.lime ||
     '#B2D530';
-  const navy = ((theme.palette as { salad?: { navy?: string } }).salad?.navy) || '#0A2133';
+  const navy = (theme.palette as { salad?: { navy?: string } }).salad?.navy || '#0A2133';
   const bg = isDark ? brightGreen : navy;
   const color = isDark ? navy : brightGreen;
 
