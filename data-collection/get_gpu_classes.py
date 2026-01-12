@@ -1,20 +1,13 @@
 import os
 import requests
+import json
+from datetime import datetime
 from dotenv import load_dotenv
-import psycopg2
 
 
 def main():
     # Load .env variables
     load_dotenv()  # reads .env from current directory
-
-    conn = psycopg2.connect(
-        dbname=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=int(os.getenv("POSTGRES_PORT", 5432)),
-    )
 
     strapi_password = os.getenv("STRAPIPW")
     strapi_name = os.getenv("STRAPIID")
@@ -50,56 +43,78 @@ def main():
 
     published_gpu_classes = getGpuClasses()
 
-    # Insert/update published_gpu_classes into the table
-    with conn:
-        with conn.cursor() as cur:
-            for uuid, gpu in published_gpu_classes.items():
-                # Preprocess vram_gb value
-                vram_gb = gpu.get("vram_gb")
-                if vram_gb is None:
-                    name = gpu.get("name", "")
-                    if "(" in name and "GB" in name:
-                        try:
-                            vram_gb = int(name.split("(")[-1].split("GB")[0].strip())
-                        except Exception:
-                            vram_gb = None
+    # Process and format GPU classes for export
+    gpu_classes_data = []
+    for uuid, gpu in published_gpu_classes.items():
+        # Preprocess vram_gb value
+        vram_gb = gpu.get("vram_gb")
+        if vram_gb is None:
+            name = gpu.get("name", "")
+            if "(" in name and "GB" in name:
+                try:
+                    vram_gb = int(name.split("(")[-1].split("GB")[0].strip())
+                except Exception:
+                    vram_gb = None
 
-                cur.execute(
-                    """
-                    INSERT INTO gpu_classes (
-                        gpu_class_id, batch_price, low_price, medium_price, high_price, gpu_type, gpu_class_name, vram_gb
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (gpu_class_id) DO UPDATE SET
-                        batch_price = EXCLUDED.batch_price,
-                        low_price = EXCLUDED.low_price,
-                        medium_price = EXCLUDED.medium_price,
-                        high_price = EXCLUDED.high_price,
-                        gpu_type = EXCLUDED.gpu_type,
-                        gpu_class_name = EXCLUDED.gpu_class_name,
-                        vram_gb = EXCLUDED.vram_gb
-                    """,
-                    (
-                        uuid,
-                        gpu.get("batchPrice"),
-                        gpu.get("lowPrice"),
-                        gpu.get("mediumPrice"),
-                        gpu.get("highPrice"),
-                        gpu.get("gpuClassType"),
-                        gpu.get("name"),
-                        vram_gb,
-                    ),
-                )
+        gpu_data = {
+            "gpu_class_id": uuid,
+            "batch_price": gpu.get("batchPrice"),
+            "low_price": gpu.get("lowPrice"),
+            "medium_price": gpu.get("mediumPrice"),
+            "high_price": gpu.get("highPrice"),
+            "gpu_type": gpu.get("gpuClassType"),
+            "gpu_class_name": gpu.get("name"),
+            "vram_gb": vram_gb,
+        }
+        gpu_classes_data.append(gpu_data)
 
-    # Load all gpu_classes from the table and save as a dictionary
-    gpu_classes_dict = {}
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT gpu_class_id, gpu_class_name FROM gpu_classes")
-            for row in cur.fetchall():
-                gpu_classes_dict[row[0]] = row[1]
-    # Now gpu_classes_dict maps uuid to readable name
+    # Create export structure compatible with import_gpu_classes.py
+    export_data = {
+        "export_metadata": {
+            "timestamp": datetime.now().isoformat(),
+            "source_database": f"Strapi CMS ({strapi_url})",
+            "record_count": len(gpu_classes_data),
+            "export_type": "gpu_classes",
+            "schema": {
+                "table_name": "gpu_classes",
+                "columns": [
+                    {"name": "gpu_class_id", "type": "TEXT", "nullable": False},
+                    {
+                        "name": "batch_price",
+                        "type": "DOUBLE PRECISION",
+                        "nullable": True,
+                    },
+                    {"name": "low_price", "type": "DOUBLE PRECISION", "nullable": True},
+                    {
+                        "name": "medium_price",
+                        "type": "DOUBLE PRECISION",
+                        "nullable": True,
+                    },
+                    {
+                        "name": "high_price",
+                        "type": "DOUBLE PRECISION",
+                        "nullable": True,
+                    },
+                    {"name": "gpu_type", "type": "TEXT", "nullable": True},
+                    {"name": "gpu_class_name", "type": "TEXT", "nullable": False},
+                    {"name": "vram_gb", "type": "INTEGER", "nullable": True},
+                ],
+            },
+        },
+        "data": gpu_classes_data,
+    }
+
+    # Write to JSON file
+    output_file = "gpu_classes_export.json"
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(export_data, f, indent=2, ensure_ascii=False)
+
+    print(f"✅ Exported {len(gpu_classes_data)} GPU classes to {output_file}")
+    print(f"📊 Source: {strapi_url}")
+    print(f"🕒 Export time: {export_data['export_metadata']['timestamp']}")
+    print(f"\nTo import into database, run:")
+    print(f"  python import_gpu_classes.py {output_file}")
 
 
 if __name__ == "__main__":
-
     main()
