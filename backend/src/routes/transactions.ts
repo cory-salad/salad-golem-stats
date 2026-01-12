@@ -66,6 +66,18 @@ export async function transactionsRoutes(
       const sortColumn = sortColumnMap[sortBy];
       const order = sortOrder.toUpperCase();
 
+      // Helper to get cursor value from a transaction based on sort column
+      const getCursorValue = (t: Transaction): string => {
+        switch (sortBy) {
+          case "glm":
+            return String(t.value_glm);
+          case "block":
+            return String(t.block_number);
+          default:
+            return t.block_timestamp;
+        }
+      };
+
       // Build query
       let sql = `
         SELECT tx_hash, block_number, block_timestamp, from_address, to_address, value_glm, tx_type
@@ -116,53 +128,56 @@ export async function transactionsRoutes(
       let prevCursor: string | null = null;
 
       if (pageTransactions.length > 0) {
+        const firstCursor = getCursorValue(pageTransactions[0]);
+        const lastCursor = getCursorValue(
+          pageTransactions[pageTransactions.length - 1]
+        );
+
         if (direction === "next") {
           // Check if there are older records
           const olderCount = await queryOne<{ count: string }>(
-            "SELECT COUNT(*) as count FROM glm_transactions WHERE block_timestamp < $1",
-            [pageTransactions[pageTransactions.length - 1].block_timestamp]
+            `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} < $1`,
+            [lastCursor]
           );
           if (parseInt(olderCount?.count ?? "0", 10) > 0) {
-            nextCursor =
-              pageTransactions[pageTransactions.length - 1].block_timestamp;
+            nextCursor = lastCursor;
           }
 
           // Check if there are newer records
           const newerCount = await queryOne<{ count: string }>(
-            "SELECT COUNT(*) as count FROM glm_transactions WHERE block_timestamp > $1",
-            [pageTransactions[0].block_timestamp]
+            `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} > $1`,
+            [firstCursor]
           );
           if (parseInt(newerCount?.count ?? "0", 10) > 0) {
-            prevCursor = pageTransactions[0].block_timestamp;
+            prevCursor = firstCursor;
           }
         } else {
           if (cursor) {
             // Check if there are newer records
             const newerCount = await queryOne<{ count: string }>(
-              "SELECT COUNT(*) as count FROM glm_transactions WHERE block_timestamp > $1",
-              [pageTransactions[0].block_timestamp]
+              `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} > $1`,
+              [firstCursor]
             );
             if (parseInt(newerCount?.count ?? "0", 10) > 0) {
-              prevCursor = pageTransactions[0].block_timestamp;
+              prevCursor = firstCursor;
             }
 
             // Check if there are older records
             const olderCount = await queryOne<{ count: string }>(
-              "SELECT COUNT(*) as count FROM glm_transactions WHERE block_timestamp < $1",
-              [pageTransactions[pageTransactions.length - 1].block_timestamp]
+              `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} < $1`,
+              [lastCursor]
             );
             if (parseInt(olderCount?.count ?? "0", 10) > 0) {
-              nextCursor =
-                pageTransactions[pageTransactions.length - 1].block_timestamp;
+              nextCursor = lastCursor;
             }
           } else {
             // "Last" page - check if there are newer records
             const newerCount = await queryOne<{ count: string }>(
-              "SELECT COUNT(*) as count FROM glm_transactions WHERE block_timestamp > $1",
-              [pageTransactions[0].block_timestamp]
+              `SELECT COUNT(*) as count FROM glm_transactions WHERE ${sortColumn} > $1`,
+              [firstCursor]
             );
             if (parseInt(newerCount?.count ?? "0", 10) > 0) {
-              prevCursor = pageTransactions[0].block_timestamp;
+              prevCursor = firstCursor;
             }
           }
         }
