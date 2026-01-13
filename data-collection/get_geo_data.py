@@ -8,22 +8,11 @@ import csv
 from pathlib import Path
 from pymongo import MongoClient
 from dotenv import load_dotenv
-import psycopg2
-from shared_geo_db import save_geo_data_to_database
 
 
 def get_database_connection():
-    """Initialize database connections"""
+    """Initialize MongoDB connection"""
     load_dotenv()
-
-    # PostgreSQL connection
-    pg_conn = psycopg2.connect(
-        dbname=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=int(os.getenv("POSTGRES_PORT", 5432)),
-    )
 
     # MongoDB connection
     mongo_user = os.getenv("MONGOUSER")
@@ -35,14 +24,14 @@ def get_database_connection():
     mongo_client = MongoClient(connection_string)
     mongo_db = mongo_client[mongo_name]
 
-    return pg_conn, mongo_db
+    return mongo_db
 
 
 def get_node_data(
     filter_is_running=False, filter_has_workload=False, filter_organizations=[]
 ):
     """Fetch and filter node data from MongoDB"""
-    _, mongo_db = get_database_connection()
+    mongo_db = get_database_connection()
 
     date_cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime(
         "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -237,30 +226,38 @@ def add_lat_long_to_data(city_counter):
 
 
 def save_data_to_files(output_rows_city):
-    """Save processed data to JSON file for transfer/import"""
-    # Write city data JSON for transfer/import
-    export_data = {
-        "export_metadata": {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "source": "get_geo_data.py",
-            "record_count": len(output_rows_city),
-            "description": "City node distribution data for dashboard import",
-        },
-        "data": output_rows_city,
-    }
+    """Save processed data to CSV file for pgAdmin import"""
+    current_timestamp = datetime.now(timezone.utc)
+    timestamp_str = current_timestamp.isoformat()
 
-    with open("./data/city_data_export.json", "w", encoding="utf-8") as f:
-        json.dump(export_data, f, ensure_ascii=False, indent=2)
+    # Write CSV file for pgAdmin import
+    csv_filename = "./data/city_data.csv"
+    with open(csv_filename, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
 
-    print(f"Exported {len(output_rows_city)} city records to city_data_export.json")
+        exported_count = 0
+        for row in output_rows_city:
+            if row["lat"] and row["lon"]:  # Only include geocoded cities
+                writer.writerow(
+                    [
+                        timestamp_str,
+                        row["city"],
+                        row["count"],
+                        float(row["lat"]),
+                        float(row["lon"]),
+                    ]
+                )
+                exported_count += 1
 
-
-def save_data_to_database(output_rows_city):
-    """Save processed data to PostgreSQL database using shared database functions"""
-    print("Saving city data to database...")
-    save_geo_data_to_database(
-        city_data=output_rows_city, clear_existing=True, use_bulk_insert=True
+    print(f"✅ Exported {exported_count} city records to {csv_filename}")
+    print(
+        f"📊 Total cities processed: {len(output_rows_city)} (geocoded: {exported_count})"
     )
+    print(f"🕒 Export time: {timestamp_str}")
+    print(f"\\nFor pgAdmin import:")
+    print(f"  Table: city_snapshots")
+    print(f"  Columns: ts, name, count, lat, long")
+    print(f"  File: {csv_filename}")
 
 
 def main(filter_is_running=False, filter_has_workload=False, filter_organizations=[]):
@@ -277,15 +274,11 @@ def main(filter_is_running=False, filter_has_workload=False, filter_organization
     print("2. Adding latitude/longitude coordinates...")
     output_rows_city = add_lat_long_to_data(city_counter)
 
-    # 3. Save the data to files
-    print("3. Saving data to CSV files...")
+    # 3. Save the data to CSV file
+    print("3. Saving data to CSV export file...")
     save_data_to_files(output_rows_city)
 
-    # 4. Put the data in the database
-    print("4. Saving data to PostgreSQL database...")
-    save_data_to_database(output_rows_city)
-
-    print("Geographic data processing complete!")
+    print("Geographic data export complete!")
 
 
 if __name__ == "__main__":

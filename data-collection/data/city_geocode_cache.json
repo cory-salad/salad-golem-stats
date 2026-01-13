@@ -46207,5 +46207,1678 @@
   "Zaural'skiy": {
     "lat": 54.787491,
     "lon": 61.236465
+  },
+  "Malo Crnice": {
+    "lat": 44.560257,
+    "lon": 21.290565
+  },
+  "Bourges": {
+    "lat": 47.0811658,
+    "lon": 2.399125
+  },
+  "Ilvesheim": {
+    "lat": 49.4735917,
+    "lon": 8.5673003
+  },
+  "Rumenka": {
+    "lat": 45.2933912,
+    "lon": 19.7410418
+  },
+  "Pontypridd": {
+    "lat": 51.6001047,
+    "lon": -3.3449362
+  },
+  "Gresik": {
+    "lat": -7.1571614,
+    "lon": 112.6559633
+  },
+  "Gloversville": {
+    "lat": 43.0505021,
+    "lon": -74.3457623
+  },
+  "Poiana Copaceni": {
+    "lat": 45.1639907,
+    "lon": 26.0691117
+  },
+  "Mont-Saint-Hilaire": {
+    "lat": 45.5623512,
+    "lon": -73.1918864
+  },
+  "Dielheim": {
+    "lat": 49.2824981,
+    "lon": 8.7351709
+  },
+  "Bouchet": {
+    "lat": 44.2976349,
+    "lon": 4.8735301
+  },
+  "Stodulky": {
+    "lat": 50.0483074,
+    "lon": 14.3124035
+  },
+  "Grobina": {
+    "lat": 56.5368569,
+    "lon": 21.1676042
+  },
+  "Ghitorni": {
+    "lat": 28.4931214,
+    "lon": 77.1424868
+  },
+  "Villasequilla de Yepes": null,
+  "Sanderstead": {
+    "lat": 51.3340837,
+    "lon": -0.0767435
+  },
+  "El Goloso": {
+    "lat": 40.5397891,
+    "lon": -3.6905166
+  },
+  "Ensley": {
+    "lat": 30.5188067,
+    "lon": -87.2727509
+  },
+  "Estouteville-Ecalles": {
+    "lat": 49.5891686,
+    "lon": 1.3119663
+  },
+  "Madipakkam": {
+    "lat": 12.9611348,
+    "lon": 80.2001292
+  },
+  "Xcanatun": {
+    "lat": 21.075534,
+    "lon": -89.629066
+  },
+  "Marema": {
+    "lat": -26.802361,
+    "lon": -52.626445
+  },
+  "Stallings": {
+    "lat": 35.1083615,
+    "lon": -80.663559
+  },
+  "Bryne": {
+    "lat": 58.735525,
+    "lon": 5.6478183
+  },
+  "Zellerndorf": {
+    "lat": 48.6961487,
+    "lon": 15.9583751
+  },
+  "Arc-sous-Cicon": {
+    "lat": 47.0515549,
+    "lon": 6.3794128
+  },
+  "Lisnaskea": {
+    "lat": 54.2519389,
+    "lon": -7.4424577
+  },
+  "Udim": {
+    "lat": 32.2647709,
+    "lon": 34.8469332
+  },
+  "Carmichael": {
+    "lat": 50.0451694,
+    "lon": -108.6490982
+  },
+  "Forchies-la-Marche": {
+    "lat": 50.433433,
+    "lon": 4.3221608
+  },
+  "Balatonszabadi": {
+    "lat": 46.8913312,
+    "lon": 18.133571
+  },
+  "Clementon": {
+    "lat": 39.8115033,
+    "lon": -74.9829443
+  },
+  "Sistranda": {
+    "lat": 63.7301981,
+    "lon": 8.8297021
+  },
+  "Vidigulfo": {
+    "lat": 45.292267,
+    "lon": 9.236651
+  },
+  "Rubidoux": {
+    "lat": 33.9964933,
+    "lon": -117.4079318
+  },
+  "Hayfield": {
+    "lat": 43.8906201,
+    "lon": -92.8479006
+  },
+  "Tata": {
+    "lat": 47.6516214,
+    "lon": 18.3282083
+  },
+  "Beeskow": {
+    "lat": 52.1721569,
+    "lon": 14.2471058
+  },
+  "Rondonopolis": {
+    "lat": -16.4603533,
+    "lon": -54.6397099
+  },
+  "Puttankulam": null,
+  "Vandiyur": {
+    "lat": 9.9155465,
+    "lon": 78.1609778
+  },
+  "Pincourt": {
+    "lat": 45.371202,
+    "lon": -73.986053
+  },
+  "Taviano": {
+    "lat": 39.983519,
+    "lon": 18.086826
+  },
+  "Bou Arfa": null,
+  "Saliste": {
+    "lat": 45.7957186,
+    "lon": 23.8845754
+  },
+  "Atenas": {
+    "lat": 37.9755648,
+    "lon": 23.7348324
+  },
+  "Houeilles": {
+    "lat": 44.1960598,
+    "lon": 0.032974
+  },
+  "Port Alsworth": {
+    "lat": 60.2036369,
+    "lon": -154.3171268
+  },
+  "Bury St Edmunds": {
+    "lat": 52.2460367,
+    "lon": 0.7125173
+  },
+  "Dolhasca": {
+    "lat": 47.426148,
+    "lon": 26.611131
+  },
+  "Berkel en Rodenrijs": {
+    "lat": 51.9911323,
+    "lon": 4.4739774
+  },
+  "Paarl": {
+    "lat": -33.7310282,
+    "lon": 18.9642117
+  },
+  "Fossambault-sur-le-Lac": {
+    "lat": 46.871928,
+    "lon": -71.6185
+  },
+  "Homeland Park": {
+    "lat": 34.464997,
+    "lon": -82.6639801
+  },
+  "Bovolenta": {
+    "lat": 45.2703747,
+    "lon": 11.9350857
+  },
+  "Langenboom": {
+    "lat": 51.7005575,
+    "lon": 5.7286805
+  },
+  "Gravatai": {
+    "lat": -29.9247688,
+    "lon": -50.9886476
+  },
+  "Willingham": {
+    "lat": 52.3211284,
+    "lon": 0.0811446
+  },
+  "Wonck": {
+    "lat": 50.7677078,
+    "lon": 5.6333621
+  },
+  "Crna Bara": {
+    "lat": 45.9735278,
+    "lon": 20.2763122
+  },
+  "Gmina Zabia Wola": {
+    "lat": 51.9980069,
+    "lon": 20.6877916
+  },
+  "Roseto Valfortore": {
+    "lat": 41.372427,
+    "lon": 15.096142
+  },
+  "Douglaston": {
+    "lat": 40.768713,
+    "lon": -73.7470765
+  },
+  "Bathurst": {
+    "lat": 13.45535,
+    "lon": -16.575646
+  },
+  "Maduravoyal": {
+    "lat": 13.0601732,
+    "lon": 80.1665988
+  },
+  "Fujimino": {
+    "lat": 35.8794749,
+    "lon": 139.5195441
+  },
+  "Saint-Nicolas": {
+    "lat": 50.3022047,
+    "lon": 2.7767966
+  },
+  "Agioi Theodoroi": {
+    "lat": 37.9444185,
+    "lon": 21.3218336
+  },
+  "Novi Zednik": {
+    "lat": 45.9408773,
+    "lon": 19.6721045
+  },
+  "Kiel": {
+    "lat": 54.3227085,
+    "lon": 10.135555
+  },
+  "Kalaa Srira": null,
+  "Penonome": {
+    "lat": 8.5204989,
+    "lon": -80.359579
+  },
+  "Bangsar": {
+    "lat": 3.13083,
+    "lon": 101.66944
+  },
+  "New Salak Tinggi City": null,
+  "Tanah Merah": {
+    "lat": 5.8097754,
+    "lon": 102.1484103
+  },
+  "Rembia": {
+    "lat": 2.3288645,
+    "lon": 102.2087672
+  },
+  "Siburan": {
+    "lat": 1.3614996,
+    "lon": 110.4043453
+  },
+  "Renton": {
+    "lat": 47.4799078,
+    "lon": -122.2034496
+  },
+  "Whalley": {
+    "lat": 53.8215412,
+    "lon": -2.4059596
+  },
+  "Al Mafraq": {
+    "lat": 24.3288447,
+    "lon": 54.6061811
+  },
+  "Gundupalaiyam": null,
+  "Salzkotten": {
+    "lat": 51.6717596,
+    "lon": 8.6068636
+  },
+  "Dunavarsany": {
+    "lat": 47.2789632,
+    "lon": 19.0661045
+  },
+  "Lakselv": {
+    "lat": 70.0524983,
+    "lon": 24.9606571
+  },
+  "Bad Wurzach": {
+    "lat": 47.9084031,
+    "lon": 9.8966021
+  },
+  "Saint Marys": {
+    "lat": 39.194164,
+    "lon": -96.0711041
+  },
+  "Craignish": {
+    "lat": -25.280336,
+    "lon": 152.7244924
+  },
+  "Stenay": {
+    "lat": 49.4916388,
+    "lon": 5.1883537
+  },
+  "Raxendorf": {
+    "lat": 48.341073,
+    "lon": 15.2766577
+  },
+  "Sancaktepe": {
+    "lat": 40.9905196,
+    "lon": 29.2288624
+  },
+  "Sopot": {
+    "lat": 54.4447922,
+    "lon": 18.5684902
+  },
+  "Phaya Thai": {
+    "lat": 13.7710862,
+    "lon": 100.5365699
+  },
+  "El Rosal": {
+    "lat": 10.4891965,
+    "lon": -66.8656415
+  },
+  "Mellenbach-Glasbach": {
+    "lat": 50.5966708,
+    "lon": 11.0980484
+  },
+  "Ramgarh": {
+    "lat": 23.6303213,
+    "lon": 85.5215878
+  },
+  "Chatham": {
+    "lat": 51.3819167,
+    "lon": 0.526559
+  },
+  "Trinec": {
+    "lat": 49.6779212,
+    "lon": 18.6711993
+  },
+  "Mulavukad": null,
+  "Strasshof an der Nordbahn": {
+    "lat": 48.3189487,
+    "lon": 16.6429437
+  },
+  "Castanheira do Ribatejo": {
+    "lat": 38.9930986,
+    "lon": -8.9715412
+  },
+  "Coomera": {
+    "lat": -27.84883,
+    "lon": 153.3296968
+  },
+  "Moinhos": {
+    "lat": 41.9368705,
+    "lon": -7.9800073
+  },
+  "Jepara": {
+    "lat": -6.5899148,
+    "lon": 110.6672987
+  },
+  "Larochette": {
+    "lat": 49.7869673,
+    "lon": 6.2189134
+  },
+  "Soneja": {
+    "lat": 39.8156407,
+    "lon": -0.4300063
+  },
+  "Concordia": {
+    "lat": 45.7561044,
+    "lon": 12.8449558
+  },
+  "Dolni Chiflik": {
+    "lat": 42.9925676,
+    "lon": 27.7187564
+  },
+  "Gyomaendrod": {
+    "lat": 46.9358032,
+    "lon": 20.8260916
+  },
+  "Fulshear": {
+    "lat": 29.6925638,
+    "lon": -95.9001865
+  },
+  "Yuga": {
+    "lat": 63.781433,
+    "lon": 39.236176
+  },
+  "Sison": {
+    "lat": 50.5677767,
+    "lon": 3.215489
+  },
+  "Kincumber": {
+    "lat": -33.465,
+    "lon": 151.3927778
+  },
+  "San Giorgio a Cremano": {
+    "lat": 40.8292962,
+    "lon": 14.3341677
+  },
+  "Kolonnawa": {
+    "lat": 6.9326254,
+    "lon": 79.8903143
+  },
+  "San Fele": {
+    "lat": 40.8193255,
+    "lon": 15.5384276
+  },
+  "Criciuma": {
+    "lat": -28.6789941,
+    "lon": -49.3695627
+  },
+  "Handayama": {
+    "lat": 34.7720292,
+    "lon": 137.74131
+  },
+  "Donggongon": {
+    "lat": 5.906508,
+    "lon": 116.0890694
+  },
+  "Lohnsburg": {
+    "lat": 48.1441002,
+    "lon": 13.4059711
+  },
+  "Abu Tisht": null,
+  "Arcozelo": {
+    "lat": 41.5423601,
+    "lon": -8.6127013
+  },
+  "Saussay": {
+    "lat": 49.6345535,
+    "lon": 0.9398153
+  },
+  "Sastamala": {
+    "lat": 61.3402939,
+    "lon": 22.9097256
+  },
+  "Scanteia": {
+    "lat": 46.920152,
+    "lon": 27.5788534
+  },
+  "Saint-Jory": {
+    "lat": 43.7416409,
+    "lon": 1.370447
+  },
+  "Piuma": {
+    "lat": 45.9627175,
+    "lon": 13.6151985
+  },
+  "Bulzesti": {
+    "lat": 44.5326283,
+    "lon": 23.8903346
+  },
+  "Chmielowice": {
+    "lat": 50.6492565,
+    "lon": 17.8672058
+  },
+  "Cheruthazham": {
+    "lat": 12.0715561,
+    "lon": 75.2602571
+  },
+  "Ota": {
+    "lat": 35.561206,
+    "lon": 139.715843
+  },
+  "Goodhue": {
+    "lat": 44.3999369,
+    "lon": -92.6225676
+  },
+  "Santa Clara Ocoyucan": {
+    "lat": 18.976944,
+    "lon": -98.301389
+  },
+  "Ljusdal": {
+    "lat": 61.866667,
+    "lon": 15.7
+  },
+  "Tenambakkam": null,
+  "Tsuen Wan": {
+    "lat": 22.3716605,
+    "lon": 114.1134699
+  },
+  "Cottbus": {
+    "lat": 51.7567447,
+    "lon": 14.3357307
+  },
+  "Wierzawice": {
+    "lat": 50.2359458,
+    "lon": 22.4525456
+  },
+  "Bernate Ticino": {
+    "lat": 45.4793424,
+    "lon": 8.8180386
+  },
+  "Lonsboda": {
+    "lat": 56.3985844,
+    "lon": 14.3213269
+  },
+  "Police nad Metuji": {
+    "lat": 50.5368703,
+    "lon": 16.2335044
+  },
+  "Piano di Mommio": {
+    "lat": 43.9099429,
+    "lon": 10.2729223
+  },
+  "Gua Musang": {
+    "lat": 4.8792724,
+    "lon": 101.9652332
+  },
+  "Rokosovo": {
+    "lat": 48.2052601,
+    "lon": 23.18012
+  },
+  "Vrindavan": {
+    "lat": 27.5753726,
+    "lon": 77.6938045
+  },
+  "Minna": {
+    "lat": 9.6187093,
+    "lon": 6.5475752
+  },
+  "Palackattumala": {
+    "lat": 9.7449855,
+    "lon": 76.6292978
+  },
+  "Doroteia": {
+    "lat": 47.5002734,
+    "lon": 25.7980329
+  },
+  "Monte Compatri": {
+    "lat": 41.808918,
+    "lon": 12.737784
+  },
+  "Bin": {
+    "lat": 45.7434153,
+    "lon": 127.4602943
+  },
+  "Penne": {
+    "lat": 44.0767,
+    "lon": 1.73031
+  },
+  "Maai Mahiu": null,
+  "Retford": {
+    "lat": 53.3231315,
+    "lon": -0.9424879
+  },
+  "Mastov": {
+    "lat": 50.262274,
+    "lon": 13.2804584
+  },
+  "Gaya": {
+    "lat": 24.7964355,
+    "lon": 85.0079563
+  },
+  "Moyross": {
+    "lat": 52.683137,
+    "lon": -8.6466191
+  },
+  "Golub-Dobrzyn": {
+    "lat": 53.1138924,
+    "lon": 19.0544501
+  },
+  "Boumerdas": {
+    "lat": 36.7710146,
+    "lon": 3.5096078
+  },
+  "Pefka": {
+    "lat": 40.9008451,
+    "lon": 26.0412762
+  },
+  "Malacca": {
+    "lat": 2.1942647,
+    "lon": 102.2486651
+  },
+  "Orchard": {
+    "lat": 29.6041269,
+    "lon": -95.9696778
+  },
+  "Made": {
+    "lat": 51.6773008,
+    "lon": 4.7931811
+  },
+  "Phu Thai": {
+    "lat": 20.9701087,
+    "lon": 106.505421
+  },
+  "Campo Bom": {
+    "lat": -29.678418,
+    "lon": -51.0572268
+  },
+  "Kriva Palanka": {
+    "lat": 42.2038104,
+    "lon": 22.3336663
+  },
+  "Papampeta": {
+    "lat": 17.745926,
+    "lon": 82.6444754
+  },
+  "Costacabana": {
+    "lat": 36.8383669,
+    "lon": -2.3807779
+  },
+  "Lanesborough": {
+    "lat": 42.5190218,
+    "lon": -73.2277841
+  },
+  "Wawne": {
+    "lat": 53.8204151,
+    "lon": -0.339245
+  },
+  "Moncalvo": {
+    "lat": 45.050205,
+    "lon": 8.2650382
+  },
+  "Zelezna Ruda": {
+    "lat": 49.1374249,
+    "lon": 13.2350287
+  },
+  "Zona Artigianale Foroni": {
+    "lat": 45.3420041,
+    "lon": 10.736513
+  },
+  "Picayune": {
+    "lat": 30.5254692,
+    "lon": -89.6795084
+  },
+  "Santander Poblacion": null,
+  "San Rocco": {
+    "lat": 45.3543297,
+    "lon": 9.5506079
+  },
+  "Lanzara": {
+    "lat": 40.7784897,
+    "lon": 14.6793428
+  },
+  "Krusevac": {
+    "lat": 43.58264,
+    "lon": 21.3264811
+  },
+  "Bayerisch Gmain": {
+    "lat": 47.7194842,
+    "lon": 12.8980967
+  },
+  "Harina Pashdal Bar": null,
+  "Settimo": {
+    "lat": 45.4783362,
+    "lon": 10.9043402
+  },
+  "Spiegelau": {
+    "lat": 48.9134872,
+    "lon": 13.353879
+  },
+  "Holland Patent": {
+    "lat": 43.241952,
+    "lon": -75.257034
+  },
+  "Avinashi": {
+    "lat": 11.1907212,
+    "lon": 77.266879
+  },
+  "Manuel Ojinaga": {
+    "lat": 29.5654282,
+    "lon": -104.4128523
+  },
+  "Beaufort": {
+    "lat": 50.2144406,
+    "lon": 3.9615305
+  },
+  "Porthmadog": {
+    "lat": 52.9256029,
+    "lon": -4.129694
+  },
+  "Guntramsdorf": {
+    "lat": 48.0486224,
+    "lon": 16.3132175
+  },
+  "Project 6": {
+    "lat": 14.6592444,
+    "lon": 121.0405567
+  },
+  "Valsd": null,
+  "Budai": {
+    "lat": 23.378261,
+    "lon": 120.1671226
+  },
+  "Selva Alegre": {
+    "lat": 0.2693828,
+    "lon": -78.4995543
+  },
+  "Raduzhnyy": null,
+  "Stene": {
+    "lat": 50.9522246,
+    "lon": 2.3694089
+  },
+  "Iwata": {
+    "lat": 34.7177962,
+    "lon": 137.8515157
+  },
+  "Svencioneliai": {
+    "lat": 55.1652567,
+    "lon": 25.9985239
+  },
+  "Warin Chamrap": {
+    "lat": 15.1984454,
+    "lon": 104.8628696
+  },
+  "Commonwealth": {
+    "lat": 38.0748596,
+    "lon": -78.4872341
+  },
+  "Krishnapur": {
+    "lat": 28.8736962,
+    "lon": 80.445183
+  },
+  "Bojnice": {
+    "lat": 48.7799591,
+    "lon": 18.5821986
+  },
+  "Hagby": {
+    "lat": 56.5542238,
+    "lon": 16.1805219
+  },
+  "Sercaita": {
+    "lat": 45.7462826,
+    "lon": 25.1242968
+  },
+  "Cashton": {
+    "lat": 43.7430214,
+    "lon": -90.7788501
+  },
+  "Chapmanslade": {
+    "lat": 51.2339997,
+    "lon": -2.2459969
+  },
+  "Mogosoaia": {
+    "lat": 44.5297346,
+    "lon": 26.000714
+  },
+  "Polesella": {
+    "lat": 44.9640818,
+    "lon": 11.7501773
+  },
+  "El Oued": {
+    "lat": 33.3611531,
+    "lon": 6.8606693
+  },
+  "Pua": {
+    "lat": -2.936191,
+    "lon": 127.896579
+  },
+  "Pawai": {
+    "lat": 25.0168336,
+    "lon": 80.1905778
+  },
+  "Merenberg": {
+    "lat": 50.51438,
+    "lon": 8.19258
+  },
+  "Chofu": {
+    "lat": 35.6506036,
+    "lon": 139.5407066
+  },
+  "Kropyvnytskyi": {
+    "lat": 48.5105805,
+    "lon": 32.2656283
+  },
+  "Volo": {
+    "lat": 42.3261332,
+    "lon": -88.167861
+  },
+  "Liederbach": {
+    "lat": 50.7269339,
+    "lon": 9.2468974
+  },
+  "Kupinovo": {
+    "lat": 44.7066482,
+    "lon": 20.0503493
+  },
+  "Drouin": {
+    "lat": -38.1361683,
+    "lon": 145.8564344
+  },
+  "Ghazaouet": {
+    "lat": 35.093863,
+    "lon": -1.86322
+  },
+  "Duisburg": {
+    "lat": 51.434999,
+    "lon": 6.759562
+  },
+  "Soshanguve": {
+    "lat": -25.5263889,
+    "lon": 28.0994444
+  },
+  "Verajamaki": {
+    "lat": 60.2275383,
+    "lon": 24.974288
+  },
+  "Baprola": {
+    "lat": 28.6403835,
+    "lon": 77.0128901
+  },
+  "Caltana": {
+    "lat": 45.4793328,
+    "lon": 12.0299496
+  },
+  "Lillerd": null,
+  "Desselgem": {
+    "lat": 50.8866327,
+    "lon": 3.3497336
+  },
+  "Sangli": {
+    "lat": 16.8502534,
+    "lon": 74.5948885
+  },
+  "Havelberg": {
+    "lat": 52.8250425,
+    "lon": 12.0741929
+  },
+  "Mayaguez": {
+    "lat": 18.2011161,
+    "lon": -67.1391124
+  },
+  "Dolna Streda": {
+    "lat": 48.2666667,
+    "lon": 17.75
+  },
+  "Horine": {
+    "lat": 33.3733124,
+    "lon": 75.6471348
+  },
+  "Blanchester": {
+    "lat": 39.2931174,
+    "lon": -83.9888205
+  },
+  "Race": {
+    "lat": 52.5415152,
+    "lon": -8.34205
+  },
+  "Villaga": {
+    "lat": 45.4024774,
+    "lon": 11.5337205
+  },
+  "Sunshine Coast": {
+    "lat": -26.6544338,
+    "lon": 153.0933668
+  },
+  "Rahon": {
+    "lat": 47.3235763,
+    "lon": 6.5907933
+  },
+  "Sarny": {
+    "lat": 51.3350028,
+    "lon": 26.6171275
+  },
+  "Tambov": {
+    "lat": 52.7216164,
+    "lon": 41.4523988
+  },
+  "Al Funaytis": null,
+  "Ziar nad Hronom": {
+    "lat": 48.5910183,
+    "lon": 18.8500892
+  },
+  "Grottammare": {
+    "lat": 42.9904967,
+    "lon": 13.8687605
+  },
+  "Rivalta di Torino": {
+    "lat": 45.034045,
+    "lon": 7.518419
+  },
+  "Bad Bertrich": {
+    "lat": 50.0713355,
+    "lon": 7.0364466
+  },
+  "Otvice": {
+    "lat": 50.4808158,
+    "lon": 13.450696
+  },
+  "Kumhari": {
+    "lat": 21.2546406,
+    "lon": 81.5218991
+  },
+  "Ripabianca": {
+    "lat": 42.9415938,
+    "lon": 12.4042226
+  },
+  "Colonia Diana Laura Riojas de Colosio": {
+    "lat": 22.7836425,
+    "lon": -102.4908944
+  },
+  "Paisley": {
+    "lat": 55.8455828,
+    "lon": -4.4239646
+  },
+  "Caotun": {
+    "lat": 23.9738264,
+    "lon": 120.6803362
+  },
+  "Snettisham": {
+    "lat": 52.8763478,
+    "lon": 0.5018936
+  },
+  "Satchinez": {
+    "lat": 45.937496,
+    "lon": 21.0405692
+  },
+  "Sidmouth": {
+    "lat": 50.6790033,
+    "lon": -3.237657
+  },
+  "Kotor Varos": {
+    "lat": 44.6202944,
+    "lon": 17.3701203
+  },
+  "Radenci": {
+    "lat": 46.6409028,
+    "lon": 16.0399848
+  },
+  "Cerretti": {
+    "lat": 43.7232537,
+    "lon": 10.7019084
+  },
+  "Alandi": {
+    "lat": 18.6772446,
+    "lon": 73.8981129
+  },
+  "Great Marton": {
+    "lat": 53.804055,
+    "lon": -3.0204169
+  },
+  "Brunn an der Schneebergbahn": {
+    "lat": 47.8279292,
+    "lon": 16.1526123
+  },
+  "Aldeno": {
+    "lat": 45.9767795,
+    "lon": 11.0908573
+  },
+  "Toddin": {
+    "lat": 53.420608,
+    "lon": 11.105343
+  },
+  "Junqueiro": {
+    "lat": -9.9201549,
+    "lon": -36.474737
+  },
+  "Daejeon": {
+    "lat": 36.3497007,
+    "lon": 127.3849016
+  },
+  "Mong Kok": {
+    "lat": 22.3204156,
+    "lon": 114.1698105
+  },
+  "Dhanbad": {
+    "lat": 23.7952809,
+    "lon": 86.4309638
+  },
+  "Marshalswick": {
+    "lat": 51.7675435,
+    "lon": -0.3063565
+  },
+  "Tunja": {
+    "lat": 5.5324313,
+    "lon": -73.3616014
+  },
+  "Kjllefjord": null,
+  "Khenchela": {
+    "lat": 35.430154,
+    "lon": 7.145711
+  },
+  "Kapakl": null,
+  "Itaborai": {
+    "lat": -22.7496231,
+    "lon": -42.8557428
+  },
+  "En HaEmeq": null,
+  "Viet Tri": {
+    "lat": 21.3135767,
+    "lon": 105.3946516
+  },
+  "Noardburgum": {
+    "lat": 53.22126,
+    "lon": 6.00707
+  },
+  "Strassengel": {
+    "lat": 47.1139708,
+    "lon": 15.3368756
+  },
+  "Tramandai": {
+    "lat": -29.9855339,
+    "lon": -50.1316076
+  },
+  "Genaro Vazquez Seccion Tres": null,
+  "Yanbu": {
+    "lat": 24.089019,
+    "lon": 38.0687076
+  },
+  "Nawabganj": {
+    "lat": 26.8637478,
+    "lon": 82.1381306
+  },
+  "Gobindpur": {
+    "lat": 23.8338345,
+    "lon": 86.5217542
+  },
+  "Ferizaj": {
+    "lat": 42.3682168,
+    "lon": 21.1532848
+  },
+  "Tsagkarada": {
+    "lat": 39.3838929,
+    "lon": 23.1753321
+  },
+  "Inozemtsevo": {
+    "lat": 44.0939286,
+    "lon": 43.0931055
+  },
+  "Campbell River": {
+    "lat": 50.023071,
+    "lon": -125.244153
+  },
+  "Guri-si": {
+    "lat": 37.5935948,
+    "lon": 127.1297917
+  },
+  "Aistala": null,
+  "Marina di Carrara": {
+    "lat": 44.0376696,
+    "lon": 10.0455044
+  },
+  "Puttaparthi": {
+    "lat": 14.1636778,
+    "lon": 77.8124982
+  },
+  "Mavrika": {
+    "lat": 39.342977,
+    "lon": 21.9414139
+  },
+  "Camberley": {
+    "lat": 51.3392845,
+    "lon": -0.7460981
+  },
+  "Argyropoli": null,
+  "Froyennes": {
+    "lat": 50.6195489,
+    "lon": 3.3569842
+  },
+  "Kamagaya": {
+    "lat": 35.7766455,
+    "lon": 140.0007147
+  },
+  "Medininagar": {
+    "lat": 24.0397192,
+    "lon": 84.0658109
+  },
+  "Reischach": {
+    "lat": 46.7642318,
+    "lon": 11.9653693
+  },
+  "Nawabshah": {
+    "lat": 26.2452915,
+    "lon": 68.4040229
+  },
+  "Oberkempten": null,
+  "Borzeta": {
+    "lat": 49.8622568,
+    "lon": 19.9797338
+  },
+  "Montigny-en-Gohelle": {
+    "lat": 50.4269,
+    "lon": 2.92988
+  },
+  "Biaa Piska": null,
+  "Kallahti": {
+    "lat": 60.2010789,
+    "lon": 25.1391955
+  },
+  "Onex": {
+    "lat": 46.1837841,
+    "lon": 6.1007481
+  },
+  "Gornate Olona": {
+    "lat": 45.7395977,
+    "lon": 8.8597982
+  },
+  "Pecangaan": {
+    "lat": -6.6946425,
+    "lon": 111.2338332
+  },
+  "Upington": {
+    "lat": -28.456325,
+    "lon": 21.241867
+  },
+  "Petrozavodsk": {
+    "lat": 61.789221,
+    "lon": 34.3688041
+  },
+  "Rantauprapat": {
+    "lat": 2.1030662,
+    "lon": 99.8278284
+  },
+  "Beighton": {
+    "lat": 52.6162985,
+    "lon": 1.526003
+  },
+  "Trebel": {
+    "lat": 52.9980032,
+    "lon": 11.3203192
+  },
+  "Athi River": {
+    "lat": -1.4481149,
+    "lon": 36.971587
+  },
+  "Portmore": {
+    "lat": 17.9717917,
+    "lon": -76.8738048
+  },
+  "San Mateo Otzacatipan": {
+    "lat": 19.3281558,
+    "lon": -99.6041444
+  },
+  "Miekinia": {
+    "lat": 51.190964,
+    "lon": 16.7386851
+  },
+  "Misliyah": {
+    "lat": 17.459875,
+    "lon": 42.557204
+  },
+  "Dreetz": {
+    "lat": 53.7864252,
+    "lon": 11.9687734
+  },
+  "Orange Park": {
+    "lat": 30.1654707,
+    "lon": -81.7016346
+  },
+  "Osteria Nuova": {
+    "lat": 42.0376161,
+    "lon": 12.3087698
+  },
+  "Kotikawatta": null,
+  "Saint-Gely-du-Fesc": {
+    "lat": 43.6913873,
+    "lon": 3.803981
+  },
+  "Rhenen": {
+    "lat": 51.9608761,
+    "lon": 5.5722196
+  },
+  "Parur": {
+    "lat": 12.595752,
+    "lon": 78.454743
+  },
+  "Selcuklu": {
+    "lat": 37.8768663,
+    "lon": 32.4873945
+  },
+  "Kondli": {
+    "lat": 28.6070816,
+    "lon": 77.3243319
+  },
+  "Berkum": {
+    "lat": 50.6229068,
+    "lon": 7.1324086
+  },
+  "Lucerne": {
+    "lat": 47.0505452,
+    "lon": 8.3054682
+  },
+  "Creutzwald": {
+    "lat": 49.2052869,
+    "lon": 6.6963095
+  },
+  "Cap-Chat": {
+    "lat": 49.0959673,
+    "lon": -66.6878834
+  },
+  "Selaru": {
+    "lat": -3.4460682,
+    "lon": 116.0972287
+  },
+  "Texarkana": {
+    "lat": 33.4466745,
+    "lon": -94.0771483
+  },
+  "Coronel Brandsen": null,
+  "Villa Nueva": {
+    "lat": 14.5308826,
+    "lon": -90.5963325
+  },
+  "Tres Lagoas": {
+    "lat": -20.7866799,
+    "lon": -51.7061247
+  },
+  "Schofield": {
+    "lat": 44.9096907,
+    "lon": -89.6045659
+  },
+  "Puerres": {
+    "lat": 0.8855995,
+    "lon": -77.5019248
+  },
+  "Siparia": {
+    "lat": 10.1440738,
+    "lon": -61.5073632
+  },
+  "Port Alberni": {
+    "lat": 49.2343668,
+    "lon": -124.8056517
+  },
+  "Dai Mo": {
+    "lat": 55.7044118,
+    "lon": 37.5340627
+  },
+  "Tanjung Rambutan": {
+    "lat": 0.3532558,
+    "lon": 101.062022
+  },
+  "Elsenfeld": {
+    "lat": 49.8473123,
+    "lon": 9.1618537
+  },
+  "Utrera": {
+    "lat": 37.1824646,
+    "lon": -5.7817506
+  },
+  "Villar Dora": {
+    "lat": 45.114646,
+    "lon": 7.383515
+  },
+  "Grandfield": {
+    "lat": 34.2284233,
+    "lon": -98.6845075
+  },
+  "Higashihiroshima": {
+    "lat": 34.4272126,
+    "lon": 132.7416231
+  },
+  "Normandin": {
+    "lat": 48.837153,
+    "lon": -72.529678
+  },
+  "Ada": {
+    "lat": 34.7743383,
+    "lon": -96.6783651
+  },
+  "Kotel'nich": {
+    "lat": 58.3057312,
+    "lon": 48.3264396
+  },
+  "Koniakow": {
+    "lat": 49.55227,
+    "lon": 18.94434
+  },
+  "Balkesir": {
+    "lat": 39.6473917,
+    "lon": 27.8879787
+  },
+  "Salzwedel": {
+    "lat": 52.8528456,
+    "lon": 11.1539699
+  },
+  "Saint-Berthevin": {
+    "lat": 48.0690907,
+    "lon": -0.8290936
+  },
+  "Lomnice": {
+    "lat": 49.404466,
+    "lon": 16.413603
+  },
+  "Ananindeua": {
+    "lat": -1.374035,
+    "lon": -48.4016623
+  },
+  "Selestat": {
+    "lat": 48.2594396,
+    "lon": 7.454217
+  },
+  "Dongnae": {
+    "lat": 35.2052,
+    "lon": 129.0837
+  },
+  "Bellville": {
+    "lat": 29.9502253,
+    "lon": -96.2571858
+  },
+  "Drbak": null,
+  "Sanabis": {
+    "lat": 26.576706,
+    "lon": 50.081668
+  },
+  "Deliatyn": {
+    "lat": 48.5277174,
+    "lon": 24.6286388
+  },
+  "Samut Sakhon": {
+    "lat": 13.5497782,
+    "lon": 100.2742813
+  },
+  "Gallignano": {
+    "lat": 45.4391381,
+    "lon": 9.8366841
+  },
+  "Florange": {
+    "lat": 49.3278069,
+    "lon": 6.122827
+  },
+  "Niort": {
+    "lat": 46.3239233,
+    "lon": -0.4646064
+  },
+  "Zhovti Vody": {
+    "lat": 48.3465174,
+    "lon": 33.5027797
+  },
+  "Tiraspol": {
+    "lat": 46.8566229,
+    "lon": 29.6059359
+  },
+  "Arcadas": {
+    "lat": -22.7366655,
+    "lon": -46.8303278
+  },
+  "Moussy-le-Neuf": {
+    "lat": 49.0647805,
+    "lon": 2.6014953
+  },
+  "Opheusden": {
+    "lat": 51.9295769,
+    "lon": 5.6356558
+  },
+  "Fermo": {
+    "lat": 43.1604184,
+    "lon": 13.7161408
+  },
+  "Dvory nad Zitavou": {
+    "lat": 47.9932457,
+    "lon": 18.2653609
+  },
+  "Mifflinville": {
+    "lat": 41.029534,
+    "lon": -76.3077834
+  },
+  "North Corbin": {
+    "lat": 36.9655297,
+    "lon": -84.0982787
+  },
+  "Palo Pinto": {
+    "lat": 32.7668959,
+    "lon": -98.2993631
+  },
+  "Tarpiu": {
+    "lat": 47.143534,
+    "lon": 23.7614877
+  },
+  "Cerritos": {
+    "lat": 33.8644291,
+    "lon": -118.0539323
+  },
+  "Allardt": {
+    "lat": 36.3807797,
+    "lon": -84.8843258
+  },
+  "Lallmatie": null,
+  "Sunset Valley": {
+    "lat": 30.2258039,
+    "lon": -97.8149651
+  },
+  "Holly Lake Ranch": {
+    "lat": 32.7151175,
+    "lon": -95.2000809
+  },
+  "Yeoju": {
+    "lat": 37.2982901,
+    "lon": 127.637033
+  },
+  "Manukau": {
+    "lat": -36.9927661,
+    "lon": 174.8774548
+  },
+  "Dobong-gu": {
+    "lat": 37.6686,
+    "lon": 127.0466
+  },
+  "Pupri": {
+    "lat": 26.470735,
+    "lon": 85.7017232
+  },
+  "Kampong Lambak A": null,
+  "Marcallo con Casone": {
+    "lat": 45.4872199,
+    "lon": 8.8732761
+  },
+  "Baranain": {
+    "lat": 42.8048344,
+    "lon": -1.6810202
+  },
+  "Kummelnas": {
+    "lat": 59.3496091,
+    "lon": 18.2798912
+  },
+  "Redan": {
+    "lat": 33.7558824,
+    "lon": -84.1655302
+  },
+  "Kop van Zuid": {
+    "lat": 51.906546,
+    "lon": 4.4921854
+  },
+  "Abdulino": {
+    "lat": 53.6828,
+    "lon": 53.655701
+  },
+  "Titabor Town": null,
+  "Chuo": {
+    "lat": 35.6706436,
+    "lon": 139.7719923
+  },
+  "Kirov": {
+    "lat": 58.6035661,
+    "lon": 49.6666241
+  },
+  "Fieries": {
+    "lat": 52.2101414,
+    "lon": -9.4291851
+  },
+  "Linden": {
+    "lat": 33.0123537,
+    "lon": -94.3654707
+  },
+  "Berkane": {
+    "lat": 34.9266755,
+    "lon": -2.3294087
+  },
+  "Mission Bend": {
+    "lat": 29.6938956,
+    "lon": -95.6651035
+  },
+  "Facai": {
+    "lat": 45.0724376,
+    "lon": 24.2879605
+  },
+  "Restinclieres": {
+    "lat": 43.7238,
+    "lon": 4.03747
+  },
+  "Mon Repos": {
+    "lat": -24.8032052,
+    "lon": 152.4396348
+  },
+  "Quilpue": {
+    "lat": -33.0498135,
+    "lon": -71.4415282
+  },
+  "Cankaya": {
+    "lat": 39.8853321,
+    "lon": 32.8554966
+  },
+  "Nowy Wisnicz": {
+    "lat": 49.9152667,
+    "lon": 20.4621677
+  },
+  "Gmina Chemiec": null,
+  "Grzeska": {
+    "lat": 50.0820178,
+    "lon": 22.4559083
+  },
+  "New Lynn": {
+    "lat": -36.9085396,
+    "lon": 174.6837959
+  },
+  "Gyor": {
+    "lat": 47.6835029,
+    "lon": 17.6342832
+  },
+  "Phoenixville": {
+    "lat": 40.1303822,
+    "lon": -75.5149128
+  },
+  "Cagua": {
+    "lat": 10.1796632,
+    "lon": -67.4606765
+  },
+  "Loganville": {
+    "lat": 33.8389977,
+    "lon": -83.9007382
+  },
+  "Loudonville": {
+    "lat": 40.6356208,
+    "lon": -82.2334709
+  },
+  "Strathroy": {
+    "lat": 42.9561795,
+    "lon": -81.6220202
+  },
+  "Dosquebradas": {
+    "lat": 4.8339551,
+    "lon": -75.6713013
+  },
+  "Anna": {
+    "lat": 39.0204311,
+    "lon": -0.6461361
+  },
+  "Security-Widefield": null,
+  "Vranje": {
+    "lat": 42.5543511,
+    "lon": 21.8979003
+  },
+  "Santo Anastacio": {
+    "lat": -21.974662,
+    "lon": -51.652662
+  },
+  "Goombungee": {
+    "lat": -27.304154,
+    "lon": 151.8474404
+  },
+  "Waterlooville": {
+    "lat": 50.8797911,
+    "lon": -1.0314789
+  },
+  "Peekskill": {
+    "lat": 41.289811,
+    "lon": -73.9204922
+  },
+  "Nakhon Si Thammarat": {
+    "lat": 8.4327951,
+    "lon": 99.9627967
+  },
+  "Othello": {
+    "lat": 46.8259742,
+    "lon": -119.175291
+  },
+  "Shcherbani": {
+    "lat": 49.5518939,
+    "lon": 34.5359381
+  },
+  "Klebang Besar": {
+    "lat": 2.2202014,
+    "lon": 102.2015047
+  },
+  "Modiin": {
+    "lat": 31.9085744,
+    "lon": 35.0069297
+  },
+  "Sahalahti": {
+    "lat": 61.4764436,
+    "lon": 24.3321619
+  },
+  "Shinkoyasu": {
+    "lat": 35.489118,
+    "lon": 139.654578
+  },
+  "Lucrezia": {
+    "lat": 43.7744845,
+    "lon": 12.940208
+  },
+  "San Sebastian de Buenavista": {
+    "lat": 9.2397583,
+    "lon": -74.3515536
+  },
+  "Denby Dale": {
+    "lat": 53.5711933,
+    "lon": -1.6588824
+  },
+  "Luckeesarai": null,
+  "Msida": {
+    "lat": 35.8956943,
+    "lon": 14.4891829
+  },
+  "Cahors": {
+    "lat": 44.4495,
+    "lon": 1.4364999
+  },
+  "Veljusa": {
+    "lat": 41.476601,
+    "lon": 22.5678246
+  },
+  "San Sebastiano al Vesuvio": {
+    "lat": 40.8435649,
+    "lon": 14.3699499
+  },
+  "Scalo": {
+    "lat": 41.6253863,
+    "lon": 13.3299773
+  },
+  "Prato del Mare": {
+    "lat": 42.0469962,
+    "lon": 11.8308293
+  },
+  "Herveo": {
+    "lat": 5.049223,
+    "lon": -75.2398685
+  },
+  "Annecy": {
+    "lat": 45.8992348,
+    "lon": 6.1288847
+  },
+  "Bishkek": {
+    "lat": 42.8761424,
+    "lon": 74.6036724
+  },
+  "Psychiko": {
+    "lat": 38.0130854,
+    "lon": 23.772085
+  },
+  "Yaxley": {
+    "lat": 52.511405,
+    "lon": -0.241231
+  },
+  "Bou Ismail": {
+    "lat": 36.642758,
+    "lon": 2.6899362
+  },
+  "Old Sarum": {
+    "lat": 51.101794,
+    "lon": -1.785738
+  },
+  "Kalinina": {
+    "lat": 52.2719426,
+    "lon": 31.0422002
+  },
+  "Cabudare": {
+    "lat": 10.0260507,
+    "lon": -69.2436557
+  },
+  "Zeewolde": {
+    "lat": 52.331111,
+    "lon": 5.5430312
+  },
+  "Rimbo": {
+    "lat": 59.7453192,
+    "lon": 18.3601765
+  },
+  "Saint-Jean-de-Luz": {
+    "lat": 43.387219,
+    "lon": -1.6636947
   }
 }
