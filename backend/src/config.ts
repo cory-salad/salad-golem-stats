@@ -27,6 +27,8 @@ export const config = {
     geo_counts: parseInt(process.env.CACHE_TTL_GEO || '86400', 10),
     transactions: parseInt(process.env.CACHE_TTL_TRANSACTIONS || '60', 10),
     plan_stats: parseInt(process.env.CACHE_TTL_PLAN_STATS || '3600', 10),
+    golem_stats: parseInt(process.env.CACHE_TTL_GOLEM_STATS || '300', 10),
+    golem_historical: parseInt(process.env.CACHE_TTL_GOLEM_HISTORICAL || '600', 10),
   },
 
   cacheWarmer: {
@@ -37,6 +39,9 @@ export const config = {
   // Minimum date for queried transactions (ISO 8601 format)
   // Transactions before this date will not be returned
   transactionsMinDate: process.env.TRANSACTIONS_MIN_DATE || '2026-01-01T00:00:00.000Z',
+
+  // Golem integration API token for authentication
+  golemApiToken: process.env.GOLEM_API_TOKEN || '',
 } as const;
 
 export type CacheKey = keyof typeof config.cacheTtl;
