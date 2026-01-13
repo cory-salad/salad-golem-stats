@@ -118,13 +118,14 @@ async function importMasterWalletTransactions(initialLookbackBlock: number): Pro
   }
 
   // Get the last processed block for the master wallet
-  let startBlock = await getWalletLastProcessedBlock(masterWallet);
+  // NOTE: Per-wallet block tracking temporarily disabled - always use full lookback
+  const lastProcessedBlock = await getWalletLastProcessedBlock(masterWallet);
+  const startBlock = initialLookbackBlock;
 
-  if (startBlock === null) {
-    startBlock = initialLookbackBlock;
+  if (lastProcessedBlock === null) {
     logger.info(`Master wallet: first run, starting from block ${startBlock}`);
   } else {
-    logger.info(`Master wallet: continuing from block ${startBlock}`);
+    logger.info(`Master wallet: last processed block was ${lastProcessedBlock}, but using full lookback from block ${startBlock}`);
   }
 
   logger.info(`Fetching GLM transfers from master wallet: ${masterWallet}`);
@@ -178,18 +179,19 @@ async function importRequesterWalletTransactions(
   let totalInserted = 0;
 
   // Get last processed blocks for all requester wallets in one query
+  // NOTE: Per-wallet block tracking temporarily disabled - always use full lookback
   const walletBlocks = await getWalletsLastProcessedBlocks(requesterWallets);
 
   for (const requesterWallet of requesterWallets) {
     // Determine start block for this wallet
-    let startBlock = walletBlocks.get(requesterWallet);
+    // NOTE: Per-wallet block tracking temporarily disabled - always use full lookback
+    const lastProcessedBlock = walletBlocks.get(requesterWallet);
+    const startBlock = initialLookbackBlock;
 
-    if (startBlock === undefined) {
-      // New wallet - use full lookback period
-      startBlock = initialLookbackBlock;
+    if (lastProcessedBlock === undefined) {
       logger.info(`Requester wallet ${requesterWallet}: new wallet, starting from block ${startBlock}`);
     } else {
-      logger.info(`Requester wallet ${requesterWallet}: continuing from block ${startBlock}`);
+      logger.info(`Requester wallet ${requesterWallet}: last processed block was ${lastProcessedBlock}, but using full lookback from block ${startBlock}`);
     }
 
     const transfers = await getAllGlmTransfers(requesterWallet, startBlock);
