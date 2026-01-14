@@ -70,16 +70,16 @@ export default function TransactionsTable() {
   const [sortBy, setSortBy] = useState('time');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Fetch transactions from backend
-  const fetchTransactions = useCallback(
-    (opts: FetchOptions = {}) => {
+  // Fetch transactions with temporary sort override (doesn't affect global state)
+  const fetchTransactionsWithSort = useCallback(
+    (opts: FetchOptions & { tempSortOrder?: 'asc' | 'desc' } = {}) => {
       setLoading(true);
       const params = new URLSearchParams();
       params.append('limit', String(opts.pageSize ?? pageSize));
       if (opts.cursor) params.append('cursor', opts.cursor);
       if (opts.direction) params.append('direction', opts.direction);
       params.append('sort_by', opts.sortBy ?? sortBy);
-      params.append('sort_order', opts.sortOrder ?? sortOrder);
+      params.append('sort_order', opts.tempSortOrder ?? opts.sortOrder ?? sortOrder);
       fetch(`${import.meta.env.VITE_STATS_API_URL}/metrics/transactions?${params.toString()}`)
         .then((res) =>
           res.ok
@@ -102,6 +102,9 @@ export default function TransactionsTable() {
     },
     [pageSize, sortBy, sortOrder],
   );
+
+  // Alias for backward compatibility
+  const fetchTransactions = fetchTransactionsWithSort;
 
   // Initial load and when pageSize, sortBy, or sortOrder changes
   useEffect(() => {
@@ -309,10 +312,13 @@ export default function TransactionsTable() {
           size="small"
           variant="outlined"
           onClick={() => {
+            // First page: reset to beginning with current sort order
             fetchTransactions({
               pageSize,
               cursor: null,
               direction: 'next',
+              sortBy,
+              sortOrder,
             });
           }}
           disabled={!prevCursor}
@@ -375,10 +381,14 @@ export default function TransactionsTable() {
           size="small"
           variant="outlined"
           onClick={() => {
-            fetchTransactions({
+            // Last page: flip sort order temporarily to get the opposite end
+            const flippedSortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            fetchTransactionsWithSort({
               pageSize,
               cursor: null,
-              direction: 'prev',
+              direction: 'next',
+              sortBy,
+              tempSortOrder: flippedSortOrder,
             });
           }}
           disabled={!nextCursor}

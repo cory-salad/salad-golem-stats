@@ -27,6 +27,9 @@ interface TimeSeriesPoint {
   timestamp: string;
   active_nodes?: number;
   total_fees?: number;
+  expected_fees?: number;
+  observed_fees?: number;
+  transaction_count?: number;
   compute_hours?: number;
   ram_hours?: number;
   core_hours?: number;
@@ -36,6 +39,9 @@ interface TimeSeriesPoint {
 interface PlansMetricsTotals {
   active_nodes?: number;
   total_fees?: number;
+  expected_fees?: number;
+  observed_fees?: number;
+  transaction_count?: number;
   compute_hours?: number;
 }
 
@@ -632,7 +638,17 @@ export default function Dashboard() {
                     {
                       value: totals.total_fees ?? 0,
                       unit: '$',
-                      label: `Fees paid (${periodLabel})`,
+                      label: `Fees expected (${periodLabel})`,
+                    },
+                    {
+                      value: totals.observed_fees ?? 0,
+                      unit: '$',
+                      label: `Fees observed (${periodLabel})`,
+                    },
+                    {
+                      value: totals.transaction_count ?? 0,
+                      unit: '',
+                      label: `Transactions (${periodLabel})`,
                     },
                     {
                       value: totals.compute_hours ?? 0,
@@ -772,11 +788,35 @@ export default function Dashboard() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TrendChart
                       id="trend-total-invoice-amount"
-                      title="Fees Paid ($)"
-                      description="Fees paid by customers for workloads running on SaladCloud."
+                      title="Fees Expected ($)"
+                      description="Expected fees from plan invoices."
                       trendWindow={globalTimeWindow}
                       trendData={transformTimeSeries(plansData.time_series, 'total_fees')}
                       unit="$"
+                      unitType="front"
+                      isLoading={isLoading}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TrendChart
+                      id="trend-observed-fees"
+                      title="Fees Observed ($)"
+                      description="Actual GLM payments made to providers."
+                      trendWindow={globalTimeWindow}
+                      trendData={transformTimeSeries(plansData.time_series, 'observed_fees')}
+                      unit="$"
+                      unitType="front"
+                      isLoading={isLoading}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TrendChart
+                      id="trend-transaction-count"
+                      title="Payment Transactions"
+                      description="Number of GLM payment transactions to providers."
+                      trendWindow={globalTimeWindow}
+                      trendData={transformTimeSeries(plansData.time_series, 'transaction_count')}
+                      unit=""
                       unitType="front"
                       isLoading={isLoading}
                     />

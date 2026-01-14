@@ -86,7 +86,7 @@ export async function getGolemNetworkStats(): Promise<NetworkStatsResponse> {
     SELECT
       COALESCE(SUM(cpu), 0) as total_cores,
       COALESCE(SUM(ram / 1024.0), 0) as total_ram_gib,
-      COALESCE(SUM(disk / 1024.0), 0) as total_disk_gib,
+      0 as total_disk_gib,
       COALESCE(COUNT(DISTINCT CASE WHEN gpu_class_id IS NOT NULL AND gpu_class_id != '' THEN node_id END), 0) as total_gpus
     FROM node_plan
     WHERE stop_at IS NULL OR stop_at > EXTRACT(EPOCH FROM NOW()) * 1000
@@ -176,7 +176,7 @@ export async function getGolemHistoricalStats(): Promise<HistoricalStatsResponse
         COUNT(DISTINCT node_id) as online,
         SUM(cpu) as cores,
         SUM(ram / 1024.0) as ram_gib,
-        SUM(disk / 1024.0) as disk_gib,
+         as disk_gib,
         COUNT(DISTINCT CASE WHEN gpu_class_id IS NOT NULL AND gpu_class_id != '' THEN node_id END) as gpus
       FROM (
         SELECT DISTINCT ON (date_trunc('hour', to_timestamp(start_at / 1000.0)), node_id)

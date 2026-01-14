@@ -62,6 +62,14 @@ interface TotalsRow {
   gpu_hours: string | null;
 }
 
+interface ObservedFeesTotalsRow {
+  observed_fees: string | null;
+}
+
+interface TransactionCountTotalsRow {
+  transaction_count: string | null;
+}
+
 interface TimeSeriesRow {
   bucket: Date;
   active_nodes: string;
@@ -70,6 +78,16 @@ interface TimeSeriesRow {
   core_hours: string | null;
   ram_hours: string | null;
   gpu_hours: string | null;
+}
+
+interface ObservedFeesTimeSeriesRow {
+  bucket: Date;
+  observed_fees: string | null;
+}
+
+interface TransactionCountTimeSeriesRow {
+  bucket: Date;
+  transaction_count: string | null;
 }
 
 interface GpuGroupRow {
@@ -581,11 +599,134 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     ORDER BY b.bucket, vg.vram_gb
   `;
 
+  // Observed fees queries - from glm_transactions table
+  // Only include 'requester_to_provider' transactions (actual payments made)
+  const observedFeesTotalsQuery = startMs
+    ? `
+    SELECT COALESCE(SUM(value_glm), 0) as observed_fees
+    FROM glm_transactions
+    WHERE tx_type = 'requester_to_provider'
+      AND block_timestamp >= to_timestamp($2 / 1000.0)
+      AND block_timestamp < to_timestamp($1 / 1000.0)
+  `
+    : `
+    SELECT COALESCE(SUM(value_glm), 0) as observed_fees
+    FROM glm_transactions
+    WHERE tx_type = 'requester_to_provider'
+      AND block_timestamp < to_timestamp($1 / 1000.0)
+  `;
+
+  // Transaction count queries - count requester_to_provider transactions
+  const transactionCountTotalsQuery = startMs
+    ? `
+    SELECT COUNT(*) as transaction_count
+    FROM glm_transactions
+    WHERE tx_type = 'requester_to_provider'
+      AND block_timestamp >= to_timestamp($2 / 1000.0)
+      AND block_timestamp < to_timestamp($1 / 1000.0)
+  `
+    : `
+    SELECT COUNT(*) as transaction_count
+    FROM glm_transactions
+    WHERE tx_type = 'requester_to_provider'
+      AND block_timestamp < to_timestamp($1 / 1000.0)
+  `;
+
+  const observedFeesTimeSeriesQuery = startMs
+    ? `
+    WITH buckets AS (
+      SELECT generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($2 / 1000.0)),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
+    )
+    SELECT
+      b.bucket,
+      COALESCE(SUM(gt.value_glm), 0) as observed_fees
+    FROM buckets b
+    LEFT JOIN glm_transactions gt ON
+      gt.tx_type = 'requester_to_provider'
+      AND gt.block_timestamp >= b.bucket
+      AND gt.block_timestamp < (b.bucket + interval '${intervalStr}')
+    GROUP BY b.bucket
+    ORDER BY b.bucket
+  `
+    : `
+    WITH all_buckets AS (
+      SELECT
+        bucket,
+        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
+        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
+      FROM (
+        SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(COALESCE(stop_at, $1) / 1000.0)) as bucket
+        FROM node_plan WHERE start_at < $1
+      ) x
+    )
+    SELECT
+      b.bucket,
+      COALESCE(SUM(gt.value_glm), 0) as observed_fees
+    FROM all_buckets b
+    LEFT JOIN glm_transactions gt ON
+      gt.tx_type = 'requester_to_provider'
+      AND gt.block_timestamp >= b.bucket
+      AND gt.block_timestamp < (b.bucket + interval '${intervalStr}')
+    GROUP BY b.bucket
+    ORDER BY b.bucket
+  `;
+
+  const transactionCountTimeSeriesQuery = startMs
+    ? `
+    WITH buckets AS (
+      SELECT generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($2 / 1000.0)),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
+    )
+    SELECT
+      b.bucket,
+      COUNT(gt.id) as transaction_count
+    FROM buckets b
+    LEFT JOIN glm_transactions gt ON
+      gt.tx_type = 'requester_to_provider'
+      AND gt.block_timestamp >= b.bucket
+      AND gt.block_timestamp < (b.bucket + interval '${intervalStr}')
+    GROUP BY b.bucket
+    ORDER BY b.bucket
+  `
+    : `
+    WITH all_buckets AS (
+      SELECT
+        bucket,
+        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
+        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
+      FROM (
+        SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(COALESCE(stop_at, $1) / 1000.0)) as bucket
+        FROM node_plan WHERE start_at < $1
+      ) x
+    )
+    SELECT
+      b.bucket,
+      COUNT(gt.id) as transaction_count
+    FROM all_buckets b
+    LEFT JOIN glm_transactions gt ON
+      gt.tx_type = 'requester_to_provider'
+      AND gt.block_timestamp >= b.bucket
+      AND gt.block_timestamp < (b.bucket + interval '${intervalStr}')
+    GROUP BY b.bucket
+    ORDER BY b.bucket
+  `;
+
   // Execute ALL queries in parallel for maximum efficiency
   const [
     totalsResult,
     activeNodesResult,
     timeSeriesResult,
+    observedFeesTotalsResult,
+    transactionCountTotalsResult,
+    observedFeesTimeSeriesResult,
+    transactionCountTimeSeriesResult,
     gpuHoursByModelResult,
     gpuHoursByVramResult,
     activeNodesByModelResult,
@@ -598,6 +739,10 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     query<TotalsRow>(totalsQuery, timeParams),
     query<{ active_nodes: string }>(activeNodesQuery, timeParams),
     query<TimeSeriesRow>(timeSeriesQuery, timeParams),
+    query<ObservedFeesTotalsRow>(observedFeesTotalsQuery, timeParams),
+    query<TransactionCountTotalsRow>(transactionCountTotalsQuery, timeParams),
+    query<ObservedFeesTimeSeriesRow>(observedFeesTimeSeriesQuery, timeParams),
+    query<TransactionCountTimeSeriesRow>(transactionCountTimeSeriesQuery, timeParams),
     query<GpuGroupRow>(gpuHoursByModelQuery, timeParams),
     query<GpuGroupRow>(gpuHoursByVramQuery, timeParams),
     query<GpuGroupRow>(activeNodesByModelQuery, timeParams),
@@ -611,25 +756,57 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   // Process totals
   const totalsRow = totalsResult[0];
   const activeNodesRow = activeNodesResult[0];
+  const observedFeesTotalsRow = observedFeesTotalsResult[0];
+  const transactionCountTotalsRow = transactionCountTotalsResult[0];
+  
+  const expectedFees = parseFloat(totalsRow.total_fees || '0');
+  const observedFees = parseFloat(observedFeesTotalsRow.observed_fees || '0');
+  const transactionCount = parseInt(transactionCountTotalsRow.transaction_count || '0', 10);
+  
   const totals: PlanTotals = {
     active_nodes: parseInt(activeNodesRow.active_nodes, 10) || 0,
-    total_fees: parseFloat(totalsRow.total_fees || '0'),
+    total_fees: expectedFees, // Keep existing field for backward compatibility
+    expected_fees: expectedFees,
+    observed_fees: observedFees,
+    transaction_count: transactionCount,
     compute_hours: parseFloat(totalsRow.compute_hours || '0'),
     core_hours: parseFloat(totalsRow.core_hours || '0'),
     ram_hours: parseFloat(totalsRow.ram_hours || '0'),
     gpu_hours: parseFloat(totalsRow.gpu_hours || '0'),
   };
 
-  // Process time series
-  const timeSeries: PlanDataPoint[] = timeSeriesResult.map((row) => ({
-    timestamp: new Date(row.bucket.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)).toISOString(),
-    active_nodes: parseInt(row.active_nodes, 10) || 0,
-    total_fees: parseFloat(row.total_fees || '0'),
-    compute_hours: parseFloat(row.compute_hours || '0'),
-    core_hours: parseFloat(row.core_hours || '0'),
-    ram_hours: parseFloat(row.ram_hours || '0'),
-    gpu_hours: parseFloat(row.gpu_hours || '0'),
-  }));
+  // Process time series - merge observed fees and transaction count data
+  const observedFeesMap = new Map<string, number>();
+  for (const row of observedFeesTimeSeriesResult) {
+    const bucketTimestamp = new Date(row.bucket.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)).toISOString();
+    observedFeesMap.set(bucketTimestamp, parseFloat(row.observed_fees || '0'));
+  }
+
+  const transactionCountMap = new Map<string, number>();
+  for (const row of transactionCountTimeSeriesResult) {
+    const bucketTimestamp = new Date(row.bucket.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)).toISOString();
+    transactionCountMap.set(bucketTimestamp, parseInt(row.transaction_count || '0', 10));
+  }
+
+  const timeSeries: PlanDataPoint[] = timeSeriesResult.map((row) => {
+    const timestamp = new Date(row.bucket.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)).toISOString();
+    const expectedFees = parseFloat(row.total_fees || '0');
+    const observedFees = observedFeesMap.get(timestamp) || 0;
+    const transactionCount = transactionCountMap.get(timestamp) || 0;
+    
+    return {
+      timestamp,
+      active_nodes: parseInt(row.active_nodes, 10) || 0,
+      total_fees: expectedFees, // Keep existing field for backward compatibility
+      expected_fees: expectedFees,
+      observed_fees: observedFees,
+      transaction_count: transactionCount,
+      compute_hours: parseFloat(row.compute_hours || '0'),
+      core_hours: parseFloat(row.core_hours || '0'),
+      ram_hours: parseFloat(row.ram_hours || '0'),
+      gpu_hours: parseFloat(row.gpu_hours || '0'),
+    };
+  });
 
   // Process grouped metrics
   const gpuHoursByModel: GroupedMetric[] = gpuHoursByModelResult.map((row) => ({
