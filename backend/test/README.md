@@ -9,17 +9,33 @@ This directory contains integration tests that run against a real PostgreSQL dat
 
 ## Setup
 
-Create a test database:
+### 1. Create Test Database
 
 ```bash
 createdb statsdb_test
 ```
 
-Or if using Docker:
+Or if using Docker/docker-compose (from project root):
 
 ```bash
-docker exec -it <postgres-container> psql -U devuser -c "CREATE DATABASE statsdb_test;"
+docker-compose up -d postgres
+docker exec -it $(docker ps -q -f name=postgres) psql -U devuser -c "CREATE DATABASE statsdb_test;"
 ```
+
+### 2. Configure Environment (optional)
+
+Copy `.env.test.example` to `.env.test` and customize if needed:
+
+```bash
+cp .env.test.example .env.test
+```
+
+The tests will use these defaults if not configured:
+- `TEST_POSTGRES_HOST`: localhost
+- `TEST_POSTGRES_PORT`: 5432
+- `TEST_POSTGRES_DB`: statsdb_test
+- `TEST_POSTGRES_USER`: devuser
+- `TEST_POSTGRES_PASSWORD`: devpass
 
 ## Running Tests
 
