@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
-import { golemStatsRoutes } from '../src/routes/golemStats.js';
 import {
   setupTestDatabase,
   teardownTestDatabase,
@@ -13,18 +12,37 @@ import {
 } from './dbSetup.js';
 import { testNodePlans, testGpuClasses } from './fixtures.js';
 
-// Mock config
-const originalEnv = process.env;
+// Mock the database connection to use test pool
+vi.mock('../src/db/connection.js', () => ({
+  query: async <T>(sql: string, params: unknown[]): Promise<T[]> => {
+    const result = await testPool.query(sql, params);
+    return result.rows as T[];
+  },
+}));
+
+// Mock config with test values
+vi.mock('../src/config.js', () => ({
+  config: {
+    golemApiToken: 'test-secret-token-12345',
+    golemUtilizationGranularitySeconds: 30,
+    cacheTtl: {
+      geo: 86400,
+      transactions: 60,
+      plan_stats: 3600,
+      golem_stats: 300,
+      golem_historical: 600,
+    },
+  },
+}));
+
+// Now import the routes after mocks are set up
+const { golemStatsRoutes } = await import('../src/routes/golemStats.js');
 
 describe('Golem Stats Integration Tests', () => {
   let app: FastifyInstance;
   const testApiToken = 'test-secret-token-12345';
 
   beforeAll(async () => {
-    // Set test environment
-    process.env.GOLEM_API_TOKEN = testApiToken;
-    process.env.GOLEM_UTILIZATION_GRANULARITY_SECONDS = '30';
-
     // Setup test database
     await setupTestDatabase();
   });
@@ -33,7 +51,6 @@ describe('Golem Stats Integration Tests', () => {
     // Cleanup
     await teardownTestDatabase();
     await closeTestDatabase();
-    process.env = originalEnv;
   });
 
   beforeEach(async () => {
@@ -44,35 +61,7 @@ describe('Golem Stats Integration Tests', () => {
 
     // Create fresh Fastify instance for each test
     app = Fastify();
-
-    // Mock the database connection to use test pool
-    const mockDbModule = {
-      query: async <T>(sql: string, params: unknown[]): Promise<T[]> => {
-        const result = await testPool.query(sql, params);
-        return result.rows as T[];
-      },
-    };
-
-    // Mock config
-    const mockConfig = {
-      golemApiToken: testApiToken,
-      golemUtilizationGranularitySeconds: 30,
-    };
-
-    // Register routes with mocked dependencies
-    await app.register(async (fastify) => {
-      // Store original modules
-      const originalDb = await import('../src/db/connection.js');
-      const originalConfig = await import('../src/config.js');
-
-      // Replace with test versions
-      (originalDb as any).query = mockDbModule.query;
-      (originalConfig as any).config = mockConfig;
-
-      // Register routes
-      await golemStatsRoutes(fastify);
-    });
-
+    await app.register(golemStatsRoutes);
     await app.ready();
   });
 

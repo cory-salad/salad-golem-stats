@@ -232,6 +232,8 @@ export async function getGolemHistoricalStats(): Promise<HistoricalStatsResponse
   const utilizationHours = 6;
   const utilizationCutoff = Date.now() - (DATA_OFFSET_HOURS * 3600000);
   const utilizationStart = utilizationCutoff - (utilizationHours * 3600000);
+  // Subtract one interval to make end exclusive (generate_series includes both endpoints)
+  const utilizationEnd = utilizationCutoff - (granularitySeconds * 1000);
 
   const utilizationResult = await query<{
     bucket: Date;
@@ -255,7 +257,7 @@ export async function getGolemHistoricalStats(): Promise<HistoricalStatsResponse
     GROUP BY b.bucket
     ORDER BY b.bucket
   `,
-    [utilizationStart, utilizationCutoff]
+    [utilizationStart, utilizationEnd]
   );
 
   const utilization: Array<[number, number]> = utilizationResult.map((row) => [
