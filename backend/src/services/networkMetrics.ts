@@ -861,13 +861,15 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   const activeNodesByModelTs = transformToGroupedTimeSeries(activeNodesByModelTsResult, timeSeries);
   const activeNodesByVramTs = transformToGroupedTimeSeries(activeNodesByVramTsResult, timeSeries);
 
+  const responseRangeEnd = new Date(cutoff.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000));
+  const responseRangeStart = planRangeStart ? new Date(planRangeStart.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)) : null;
+
   return {
     period,
     granularity,
-    data_cutoff: cutoff.toISOString(),
     range: {
-      start: planRangeStart ? planRangeStart.toISOString(): 'beginning',
-      end: cutoff.toISOString(),
+      start: responseRangeStart ? responseRangeStart.toISOString(): 'beginning',
+      end: responseRangeEnd.toISOString(),
     },
     totals,
     gpu_hours_by_model: gpuHoursByModel,
