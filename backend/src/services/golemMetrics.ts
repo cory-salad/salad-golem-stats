@@ -1,8 +1,8 @@
-import { getPlanStats } from './planMetrics.js';
+import { getPlanStats } from './networkMetrics.js';
 import { query } from '../db/connection.js';
 import { config } from '../config.js';
 
-// Data offset in hours - matches planMetrics offset
+// Data offset in hours - matches networkMetrics offset
 // Can't return data that hasn't gone through Golem yet
 const DATA_OFFSET_HOURS = 48;
 

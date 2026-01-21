@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { createCacheHooks } from '../cache/redis.js';
-import { getPlanStats } from '../services/planMetrics.js';
+import { getPlanStats } from '../services/networkMetrics.js';
 import type { PlanPeriod } from '../types/index.js';
 
 const ALLOWED_PERIODS = ['6h', '24h', '7d', '30d', '90d', 'total'] as const;
