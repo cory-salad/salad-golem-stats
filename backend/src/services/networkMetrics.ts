@@ -147,23 +147,31 @@ function transformToGroupedTimeSeries(
 
 export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsResponse> {
   const cutoff = getDataCutoff();
-  const rangeStart = getRangeStart(cutoff, period);
+  const planRangeStart = getRangeStart(cutoff, period);
+  const transactionRangeStart = getRangeStart(new Date(), period);
   const granularity = getGranularity(period);
 
-  const cutoffMs = toEpochMs(cutoff);
-  const startMs = rangeStart ? toEpochMs(rangeStart) : null;
+  // PLAN METRICS TIMING: Use data cutoff (48-hour offset) because node plan data needs processing time
+  const planCutoffMs = toEpochMs(cutoff);
+  const planStartMs = planRangeStart ? toEpochMs(planRangeStart) : null;
+  const planTimeParams = planStartMs ? [planCutoffMs, planStartMs] : [planCutoffMs];
+  
+  // TRANSACTION METRICS TIMING: Use current time (no offset) since GLM transactions are already confirmed on-chain
+  const currentTime = Date.now();
+  const transactionEndMs = toEpochMs(new Date(currentTime));
 
-  // Build WHERE clause for time range
-  // Use overlap logic for all metrics, but allocate fees proportionally
-  const timeWhereForOverlap = startMs
+  const transactionStartMs = transactionRangeStart ? toEpochMs(transactionRangeStart) : null;
+  const transactionTimeParams = transactionStartMs ? [transactionEndMs, transactionStartMs] : [transactionEndMs];
+
+  // Build WHERE clause for plan time range - use overlap logic for all plan metrics
+  const planTimeWhereForOverlap = planStartMs
     ? 'start_at < $1 AND (stop_at IS NULL OR stop_at >= $2)'
     : 'start_at < $1';
-  const timeParams = startMs ? [cutoffMs, startMs] : [cutoffMs];
 
   // 1. Get totals
   // Active nodes uses overlap logic: nodes running at any point during the range
   // All metrics sum across jobs in the time range
-  const totalsQuery = startMs
+  const totalsQuery = planStartMs
     ? `
     SELECT
       -- Fees: allocated proportionally based on overlap time
@@ -181,7 +189,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
         ELSE 0 END
       ), 0) as gpu_hours
     FROM node_plan
-    WHERE ${timeWhereForOverlap}
+    WHERE ${planTimeWhereForOverlap}
   `
     : `
     SELECT
@@ -195,20 +203,20 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
         ELSE 0 END
       ), 0) as gpu_hours
     FROM node_plan
-    WHERE ${timeWhereForOverlap}
+    WHERE ${planTimeWhereForOverlap}
   `;
 
   // Active nodes: count nodes that were running at any point during the range
-  const activeNodesQuery = startMs
+  const activeNodesQuery = planStartMs
     ? `
     SELECT COUNT(DISTINCT node_id) as active_nodes
     FROM node_plan
-    WHERE ${timeWhereForOverlap.replace('$1', '$1').replace('$2', '$2')}
+    WHERE ${planTimeWhereForOverlap.replace('$1', '$1').replace('$2', '$2')}
   `
     : `
     SELECT COUNT(DISTINCT node_id) as active_nodes
     FROM node_plan
-    WHERE ${timeWhereForOverlap}
+    WHERE ${planTimeWhereForOverlap}
   `;
 
   // 2. Get time series
@@ -218,7 +226,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   const intervalStr = granularity === 'hourly' ? '1 hour' : '1 day';
   const msPerHour = 3600000;
 
-  const timeSeriesQuery = startMs
+  const timeSeriesQuery = planStartMs
     ? `
     WITH buckets AS (
       SELECT
@@ -326,7 +334,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
       COALESCE(SUM((COALESCE(np.stop_at, $1) - np.start_at) / 1000.0 / 3600.0), 0) as value
     FROM node_plan np
     LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
-    WHERE ${timeWhereForOverlap}
+    WHERE ${planTimeWhereForOverlap}
       AND np.gpu_class_id IS NOT NULL AND np.gpu_class_id != ''
     GROUP BY gc.gpu_class_name
     ORDER BY value DESC
@@ -339,21 +347,21 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
       COALESCE(SUM((COALESCE(np.stop_at, $1) - np.start_at) / 1000.0 / 3600.0), 0) as value
     FROM node_plan np
     LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
-    WHERE ${timeWhereForOverlap}
+    WHERE ${planTimeWhereForOverlap}
       AND np.gpu_class_id IS NOT NULL AND np.gpu_class_id != ''
     GROUP BY gc.vram_gb
     ORDER BY gc.vram_gb
   `;
 
   // 5. Get active nodes by GPU model (using overlap logic)
-  const activeNodesByModelQuery = startMs
+  const activeNodesByModelQuery = planStartMs
     ? `
     SELECT
       COALESCE(gc.gpu_class_name, 'No GPU') as group_name,
       COUNT(DISTINCT np.node_id)::text as value
     FROM node_plan np
     LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
-    WHERE ${timeWhereForOverlap.replace('$1', '$1').replace('$2', '$2')}
+    WHERE ${planTimeWhereForOverlap.replace('$1', '$1').replace('$2', '$2')}
     GROUP BY gc.gpu_class_name
     ORDER BY value DESC
   `
@@ -363,20 +371,20 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
       COUNT(DISTINCT np.node_id)::text as value
     FROM node_plan np
     LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
-    WHERE ${timeWhereForOverlap}
+    WHERE ${planTimeWhereForOverlap}
     GROUP BY gc.gpu_class_name
     ORDER BY value DESC
   `;
 
   // 6. Get active nodes by VRAM (using overlap logic)
-  const activeNodesByVramQuery = startMs
+  const activeNodesByVramQuery = planStartMs
     ? `
     SELECT
       COALESCE(gc.vram_gb::text || ' GB', 'No GPU') as group_name,
       COUNT(DISTINCT np.node_id)::text as value
     FROM node_plan np
     LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
-    WHERE ${timeWhereForOverlap.replace('$1', '$1').replace('$2', '$2')}
+    WHERE ${planTimeWhereForOverlap.replace('$1', '$1').replace('$2', '$2')}
     GROUP BY gc.vram_gb
     ORDER BY gc.vram_gb NULLS FIRST
   `
@@ -386,13 +394,13 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
       COUNT(DISTINCT np.node_id)::text as value
     FROM node_plan np
     LEFT JOIN gpu_classes gc ON np.gpu_class_id = gc.gpu_class_id
-    WHERE ${timeWhereForOverlap}
+    WHERE ${planTimeWhereForOverlap}
     GROUP BY gc.vram_gb
     ORDER BY gc.vram_gb NULLS FIRST
   `;
 
   // 7. Get GPU hours by model TIME SERIES (for stacked charts) - uses overlap logic
-  const gpuHoursByModelTsQuery = startMs
+  const gpuHoursByModelTsQuery = planStartMs
     ? `
     WITH buckets AS (
       SELECT
@@ -443,7 +451,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   `;
 
   // 8. Get GPU hours by VRAM TIME SERIES - uses overlap logic
-  const gpuHoursByVramTsQuery = startMs
+  const gpuHoursByVramTsQuery = planStartMs
     ? `
     WITH buckets AS (
       SELECT
@@ -497,7 +505,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
 
   // 9. Get active nodes by GPU model TIME SERIES - excludes non-GPU workloads
   // Uses overlap logic: count nodes running during each bucket
-  const activeNodesByModelTsQuery = startMs
+  const activeNodesByModelTsQuery = planStartMs
     ? `
     WITH buckets AS (
       SELECT generate_series(
@@ -546,7 +554,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
 
   // 10. Get active nodes by VRAM TIME SERIES - excludes non-GPU workloads
   // Uses overlap logic: count nodes running during each bucket
-  const activeNodesByVramTsQuery = startMs
+  const activeNodesByVramTsQuery = planStartMs
     ? `
     WITH buckets AS (
       SELECT generate_series(
@@ -601,7 +609,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
 
   // Observed fees queries - from glm_transactions table
   // Only include 'requester_to_provider' transactions (actual payments made)
-  const observedFeesTotalsQuery = startMs
+  const observedFeesTotalsQuery = transactionStartMs
     ? `
     SELECT COALESCE(SUM(value_glm), 0) as observed_fees
     FROM glm_transactions
@@ -617,7 +625,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   `;
 
   // Transaction count queries - count requester_to_provider transactions
-  const transactionCountTotalsQuery = startMs
+  const transactionCountTotalsQuery = transactionStartMs
     ? `
     SELECT COUNT(*) as transaction_count
     FROM glm_transactions
@@ -632,7 +640,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
       AND block_timestamp < to_timestamp($1 / 1000.0)
   `;
 
-  const observedFeesTimeSeriesQuery = startMs
+  const observedFeesTimeSeriesQuery = transactionStartMs
     ? `
     WITH buckets AS (
       SELECT generate_series(
@@ -653,20 +661,17 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     ORDER BY b.bucket
   `
     : `
-    WITH all_buckets AS (
-      SELECT
-        bucket,
-        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
-        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
-      FROM (
-        SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(COALESCE(stop_at, $1) / 1000.0)) as bucket
-        FROM node_plan WHERE start_at < $1
-      ) x
+    WITH buckets AS (
+      SELECT generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0) - interval '7 days'),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
     )
     SELECT
       b.bucket,
       COALESCE(SUM(gt.value_glm), 0) as observed_fees
-    FROM all_buckets b
+    FROM buckets b
     LEFT JOIN glm_transactions gt ON
       gt.tx_type = 'requester_to_provider'
       AND gt.block_timestamp >= b.bucket
@@ -675,7 +680,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     ORDER BY b.bucket
   `;
 
-  const transactionCountTimeSeriesQuery = startMs
+  const transactionCountTimeSeriesQuery = transactionStartMs
     ? `
     WITH buckets AS (
       SELECT generate_series(
@@ -696,20 +701,17 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     ORDER BY b.bucket
   `
     : `
-    WITH all_buckets AS (
-      SELECT
-        bucket,
-        (EXTRACT(EPOCH FROM bucket) * 1000)::bigint as bucket_start_ms,
-        (EXTRACT(EPOCH FROM bucket + interval '${intervalStr}') * 1000)::bigint as bucket_end_ms
-      FROM (
-        SELECT DISTINCT date_trunc('${bucketInterval}', to_timestamp(COALESCE(stop_at, $1) / 1000.0)) as bucket
-        FROM node_plan WHERE start_at < $1
-      ) x
+    WITH buckets AS (
+      SELECT generate_series(
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0) - interval '7 days'),
+        date_trunc('${bucketInterval}', to_timestamp($1 / 1000.0)),
+        interval '${intervalStr}'
+      ) as bucket
     )
     SELECT
       b.bucket,
       COUNT(gt.id) as transaction_count
-    FROM all_buckets b
+    FROM buckets b
     LEFT JOIN glm_transactions gt ON
       gt.tx_type = 'requester_to_provider'
       AND gt.block_timestamp >= b.bucket
@@ -718,6 +720,8 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     ORDER BY b.bucket
   `;
 
+  // Create separate time parameters for transaction queries (without offset)
+  
   // Execute ALL queries in parallel for maximum efficiency
   const [
     totalsResult,
@@ -736,21 +740,21 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     activeNodesByModelTsResult,
     activeNodesByVramTsResult,
   ] = await Promise.all([
-    query<TotalsRow>(totalsQuery, timeParams),
-    query<{ active_nodes: string }>(activeNodesQuery, timeParams),
-    query<TimeSeriesRow>(timeSeriesQuery, timeParams),
-    query<ObservedFeesTotalsRow>(observedFeesTotalsQuery, timeParams),
-    query<TransactionCountTotalsRow>(transactionCountTotalsQuery, timeParams),
-    query<ObservedFeesTimeSeriesRow>(observedFeesTimeSeriesQuery, timeParams),
-    query<TransactionCountTimeSeriesRow>(transactionCountTimeSeriesQuery, timeParams),
-    query<GpuGroupRow>(gpuHoursByModelQuery, timeParams),
-    query<GpuGroupRow>(gpuHoursByVramQuery, timeParams),
-    query<GpuGroupRow>(activeNodesByModelQuery, timeParams),
-    query<GpuGroupRow>(activeNodesByVramQuery, timeParams),
-    query<GpuTimeSeriesRow>(gpuHoursByModelTsQuery, timeParams),
-    query<GpuTimeSeriesRow>(gpuHoursByVramTsQuery, timeParams),
-    query<GpuTimeSeriesRow>(activeNodesByModelTsQuery, timeParams),
-    query<GpuTimeSeriesRow>(activeNodesByVramTsQuery, timeParams),
+    query<TotalsRow>(totalsQuery, planTimeParams),
+    query<{ active_nodes: string }>(activeNodesQuery, planTimeParams),
+    query<TimeSeriesRow>(timeSeriesQuery, planTimeParams),
+    query<ObservedFeesTotalsRow>(observedFeesTotalsQuery, transactionTimeParams),
+    query<TransactionCountTotalsRow>(transactionCountTotalsQuery, transactionTimeParams),
+    query<ObservedFeesTimeSeriesRow>(observedFeesTimeSeriesQuery, transactionTimeParams),
+    query<TransactionCountTimeSeriesRow>(transactionCountTimeSeriesQuery, transactionTimeParams),
+    query<GpuGroupRow>(gpuHoursByModelQuery, planTimeParams),
+    query<GpuGroupRow>(gpuHoursByVramQuery, planTimeParams),
+    query<GpuGroupRow>(activeNodesByModelQuery, planTimeParams),
+    query<GpuGroupRow>(activeNodesByVramQuery, planTimeParams),
+    query<GpuTimeSeriesRow>(gpuHoursByModelTsQuery, planTimeParams),
+    query<GpuTimeSeriesRow>(gpuHoursByVramTsQuery, planTimeParams),
+    query<GpuTimeSeriesRow>(activeNodesByModelTsQuery, planTimeParams),
+    query<GpuTimeSeriesRow>(activeNodesByVramTsQuery, planTimeParams),
   ]);
 
   // Process totals
@@ -778,24 +782,27 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   // Process time series - merge observed fees and transaction count data
   const observedFeesMap = new Map<string, number>();
   for (const row of observedFeesTimeSeriesResult) {
-    const bucketTimestamp = new Date(row.bucket.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)).toISOString();
+    // Don't apply offset to transaction data - it's already confirmed on-chain
+    const bucketTimestamp = new Date(row.bucket.getTime()).toISOString();
     observedFeesMap.set(bucketTimestamp, parseFloat(row.observed_fees || '0'));
   }
 
   const transactionCountMap = new Map<string, number>();
   for (const row of transactionCountTimeSeriesResult) {
-    const bucketTimestamp = new Date(row.bucket.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)).toISOString();
+    // Don't apply offset to transaction data - it's already confirmed on-chain
+    const bucketTimestamp = new Date(row.bucket.getTime()).toISOString();
     transactionCountMap.set(bucketTimestamp, parseInt(row.transaction_count || '0', 10));
   }
 
   const timeSeries: PlanDataPoint[] = timeSeriesResult.map((row) => {
-    const timestamp = new Date(row.bucket.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)).toISOString();
+    const planTimestamp = new Date(row.bucket.getTime() + (DATA_OFFSET_HOURS * 60 * 60 * 1000)).toISOString();
+    const transactionTimestamp = new Date(row.bucket.getTime()).toISOString(); // No offset for transaction lookup
     const expectedFees = parseFloat(row.total_fees || '0');
-    const observedFees = observedFeesMap.get(timestamp) || 0;
-    const transactionCount = transactionCountMap.get(timestamp) || 0;
+    const observedFees = observedFeesMap.get(transactionTimestamp) || 0;
+    const transactionCount = transactionCountMap.get(transactionTimestamp) || 0;
     
     return {
-      timestamp,
+      timestamp: planTimestamp, // Use plan timestamp for display (with offset)
       active_nodes: parseInt(row.active_nodes, 10) || 0,
       total_fees: expectedFees, // Keep existing field for backward compatibility
       expected_fees: expectedFees,
@@ -840,7 +847,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
     granularity,
     data_cutoff: cutoff.toISOString(),
     range: {
-      start: rangeStart ? rangeStart.toISOString() : 'beginning',
+      start: rangeStart ? rangeStart.toISOString(): 'beginning',
       end: cutoff.toISOString(),
     },
     totals,

@@ -787,9 +787,21 @@ export default function Dashboard() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TrendChart
+                      id="trend-total-time-hours"
+                      title="Compute Time (hr)"
+                      description="Time customer workloads ran on SaladCloud."
+                      trendWindow={globalTimeWindow}
+                      trendData={transformTimeSeries(plansData.time_series, 'compute_hours')}
+                      unit="hours"
+                      unitType="below"
+                      isLoading={isLoading}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TrendChart
                       id="trend-total-invoice-amount"
                       title="Fees Expected ($)"
-                      description="Expected fees from plan invoices."
+                      description="Expected fees from invoices."
                       trendWindow={globalTimeWindow}
                       trendData={transformTimeSeries(plansData.time_series, 'total_fees')}
                       unit="$"
@@ -801,7 +813,7 @@ export default function Dashboard() {
                     <TrendChart
                       id="trend-observed-fees"
                       title="Fees Observed (GLM)"
-                      description="Actual GLM payments made to providers."
+                      description="Actual GLM transactions made to providers."
                       trendWindow={globalTimeWindow}
                       trendData={transformTimeSeries(plansData.time_series, 'observed_fees')}
                       unit="GLM"
@@ -822,18 +834,7 @@ export default function Dashboard() {
                     />
                   </Grid>
 
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TrendChart
-                      id="trend-total-time-hours"
-                      title="Compute Time (hr)"
-                      description="Time customer workloads ran on SaladCloud."
-                      trendWindow={globalTimeWindow}
-                      trendData={transformTimeSeries(plansData.time_series, 'compute_hours')}
-                      unit="hours"
-                      unitType="below"
-                      isLoading={isLoading}
-                    />
-                  </Grid>
+
                 </>
               ) : (
                 <Typography variant="body2" color="textSecondary">
@@ -868,6 +869,18 @@ export default function Dashboard() {
                       trendWindow={globalTimeWindow}
                       trendData={transformTimeSeries(plansData.time_series, 'core_hours')}
                       unit="CPU-hr"
+                      unitType="below"
+                      isLoading={isLoading}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TrendChart
+                      id="trend-gpu-hours"
+                      title="GPU Time Total (hr)"
+                      description="Total GPU compute hours across all workloads and GPUs."
+                      trendWindow={globalTimeWindow}
+                      trendData={transformTimeSeries(plansData.time_series, 'gpu_hours')}
+                      unit="GPU-hrs"
                       unitType="below"
                       isLoading={isLoading}
                     />
@@ -914,18 +927,6 @@ export default function Dashboard() {
                       chartData={plansData.gpu_hours_by_vram_ts}
                       labels={plansData.gpu_hours_by_vram_ts?.labels || []}
                       unit="hours"
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TrendChart
-                      id="trend-gpu-hours"
-                      title="GPU Time (hr)"
-                      description="Total GPU compute hours across all workloads."
-                      trendWindow={globalTimeWindow}
-                      trendData={transformTimeSeries(plansData.time_series, 'gpu_hours')}
-                      unit="GPU-hrs"
-                      unitType="below"
-                      isLoading={isLoading}
                     />
                   </Grid>
                 </>
