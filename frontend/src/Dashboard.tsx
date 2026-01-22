@@ -638,7 +638,7 @@ export default function Dashboard() {
                     {
                       value: totals.total_fees ?? 0,
                       unit: '$',
-                      label: `Fees Paid (${periodLabel})`,
+                      label: `Fees paid (${periodLabel})`,
                     },
                     {
                       value: totals.compute_hours ?? 0,
