@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Globe from 'react-globe.gl';
-import * as THREE from 'three';
+import { Color, Scene } from 'three';
 import type { Theme } from '@mui/material';
 
 // Custom color palette (subset needed for globe)
@@ -36,7 +36,7 @@ export interface GlobeComponentProps {
 
 interface GlobeRef {
   pointOfView: (view?: GlobeView, transitionDuration?: number) => GlobeView;
-  scene: () => THREE.Scene;
+  scene: () => Scene;
 }
 
 function GlobeComponent({ theme, themeMode, geoData }: GlobeComponentProps) {
@@ -113,7 +113,7 @@ function GlobeComponent({ theme, themeMode, geoData }: GlobeComponentProps) {
   useEffect(() => {
     const scene = globeNetworkRef.current?.scene();
     if (scene) {
-      scene.background = new THREE.Color(theme.palette.background.default);
+      scene.background = new Color(theme.palette.background.default);
     }
   }, [theme.palette.background.default]);
 
