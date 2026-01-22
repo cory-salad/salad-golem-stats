@@ -850,6 +850,7 @@ export async function getPlanStats(period: PlanPeriod): Promise<PlanStatsRespons
   return {
     period,
     granularity,
+    data_cutoff: cutoff.toISOString(),
     range: {
       start: responseRangeStart ? responseRangeStart.toISOString(): 'beginning',
       end: responseRangeEnd.toISOString(),
