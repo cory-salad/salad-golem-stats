@@ -34,6 +34,9 @@ describe('planStats routes', () => {
     totals: {
       active_nodes: 100,
       total_fees: 5000.5,
+      expected_fees: 5000.5, 
+      observed_fees: 5000.5, 
+      transaction_count: 100, 
       compute_hours: 1000.25,
       core_hours: 2000.75,
       ram_hours: 3000.5,
@@ -56,6 +59,9 @@ describe('planStats routes', () => {
         timestamp: '2025-12-23T00:00:00.000Z',
         active_nodes: 50,
         total_fees: 2500.25,
+        expected_fees: 2500.25, // or another appropriate value
+        observed_fees: 2500.25, // or another appropriate value
+        transaction_count: 10, // or another appropriate value
         compute_hours: 500.125,
         core_hours: 1000.375,
         ram_hours: 1500.25,

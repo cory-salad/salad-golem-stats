@@ -108,6 +108,13 @@ export async function golemStatsRoutes(fastify: FastifyInstance): Promise<void> 
               },
             },
           },
+          500: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+              message: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -116,8 +123,8 @@ export async function golemStatsRoutes(fastify: FastifyInstance): Promise<void> 
         const result = await getGolemNetworkStats();
         return result;
       } catch (err) {
-        request.log.error('Error generating Golem network stats:', err);
-        return reply.status(500).send({
+        request.log.error({ err }, 'Error generating Golem network stats');
+        reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to retrieve network statistics',
         });
@@ -189,6 +196,13 @@ export async function golemStatsRoutes(fastify: FastifyInstance): Promise<void> 
               },
             },
           },
+          500: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+              message: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -197,8 +211,8 @@ export async function golemStatsRoutes(fastify: FastifyInstance): Promise<void> 
         const result = await getGolemHistoricalStats();
         return result;
       } catch (err) {
-        request.log.error('Error generating Golem historical stats:', err);
-        return reply.status(500).send({
+        request.log.error({ err }, 'Error generating Golem historical stats');
+        reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to retrieve historical statistics',
         });
