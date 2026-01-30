@@ -55,6 +55,20 @@ interface HistoricalStatsResponse {
   }>;
 }
 
+async function debug_countActiveNodes(startTime: number, endTime: number) {
+  console.log(`[DEBUG] Counting active nodes between ${new Date(startTime).toISOString()} and ${new Date(endTime).toISOString()}`);
+  
+  const result = await query<{ count: string }>(`
+    SELECT COUNT(DISTINCT node_id)::text as count
+    FROM node_plan
+    WHERE start_at < $2 AND (stop_at IS NULL OR stop_at >= $1)
+  `, [startTime, endTime]);
+
+  const count = parseInt(result[0]?.count || '0', 10);
+  console.log(`[DEBUG] Found ${count} active nodes in the time window.`);
+  return count;
+}
+
 export async function getGolemNetworkStats(): Promise<NetworkStatsResponse> {
   // Get current stats from various time periods
   const [stats6h, stats24h, stats7d, stats30d, stats90d, statsTotal] = await Promise.all([
@@ -149,6 +163,11 @@ export async function getGolemHistoricalStats(): Promise<HistoricalStatsResponse
   // Get 30 days of historical data
   const stats30d = await getPlanStats('30d');
 
+  // DEBUG: Count nodes in a specific recent 1-hour window
+  const debugEndTime = Date.now() - (DATA_OFFSET_HOURS * 3600000);
+  const debugStartTime = debugEndTime - 3600000; // 1 hour ago
+  await debug_countActiveNodes(debugStartTime, debugEndTime);
+
   // Query for historical resource data by runtime (VM vs VM-NVIDIA)
   // Get hourly data for last 24 hours, daily for older
   const historicalCutoff = Date.now() - (DATA_OFFSET_HOURS * 3600000);
@@ -163,40 +182,50 @@ export async function getGolemHistoricalStats(): Promise<HistoricalStatsResponse
     gpus: string;
   }>(
     `
-    WITH time_buckets AS (
-      SELECT
-        CASE
-          WHEN bucket >= to_timestamp($1 / 1000.0) - INTERVAL '24 hours' THEN date_trunc('hour', bucket)
-          ELSE date_trunc('day', bucket)
-        END as bucket,
-        CASE WHEN gpu_class_id IS NOT NULL AND gpu_class_id != '' THEN true ELSE false END as has_gpu,
-        COUNT(DISTINCT node_id) as online,
-        SUM(cpu) as cores,
-        SUM(ram / 1024.0) as ram_gib,
-        COUNT(DISTINCT CASE WHEN gpu_class_id IS NOT NULL AND gpu_class_id != '' THEN node_id END) as gpus
-      FROM (
-        SELECT DISTINCT ON (date_trunc('hour', to_timestamp(start_at / 1000.0)), node_id)
-          date_trunc('hour', to_timestamp(start_at / 1000.0)) as bucket,
-          node_id,
-          cpu,
-          ram,
-          gpu_class_id
-        FROM node_plan
-        WHERE start_at >= $2
-        ORDER BY date_trunc('hour', to_timestamp(start_at / 1000.0)), node_id, start_at DESC
-      ) x
-      GROUP BY 1, 2
+    WITH hourly_buckets AS (
+      -- Generate hourly buckets for the last 24 hours
+      SELECT generate_series(
+        date_trunc('hour', to_timestamp($1 / 1000.0) - INTERVAL '24 hours'),
+        date_trunc('hour', to_timestamp($1 / 1000.0)),
+        INTERVAL '1 hour'
+      ) as bucket
+    ),
+    daily_buckets AS (
+      -- Generate daily buckets for the older data
+      SELECT generate_series(
+        date_trunc('day', to_timestamp($2 / 1000.0)),
+        date_trunc('day', to_timestamp($1 / 1000.0) - INTERVAL '1 day'),
+        INTERVAL '1 day'
+      ) as bucket
+    ),
+    all_buckets AS (
+      SELECT bucket, INTERVAL '1 hour' as duration FROM hourly_buckets
+      UNION ALL
+      SELECT bucket, INTERVAL '1 day' as duration FROM daily_buckets
+    ),
+    active_plans AS (
+      SELECT DISTINCT ON (b.bucket, np.node_id)
+        b.bucket,
+        np.node_id,
+        np.cpu,
+        np.ram,
+        CASE WHEN np.gpu_class_id IS NOT NULL AND np.gpu_class_id != '' THEN true ELSE false END as has_gpu
+      FROM all_buckets b
+      JOIN node_plan np ON
+        -- Plan was active during this bucket
+        np.start_at < (EXTRACT(EPOCH FROM (b.bucket + b.duration)) * 1000)
+        AND (np.stop_at IS NULL OR np.stop_at >= (EXTRACT(EPOCH FROM b.bucket) * 1000))
+      ORDER BY b.bucket, np.node_id, np.start_at DESC
     )
     SELECT
       bucket,
       has_gpu,
-      online::text,
-      cores::text,
-      ram_gib::text,
-      gpus::text
-    FROM time_buckets
-    WHERE bucket >= to_timestamp($2 / 1000.0)
-      AND bucket < to_timestamp($1 / 1000.0)
+      COUNT(DISTINCT node_id)::text as online,
+      SUM(cpu)::text as cores,
+      SUM(ram / 1024.0)::text as ram_gib,
+      COUNT(DISTINCT CASE WHEN has_gpu THEN node_id END)::text as gpus
+    FROM active_plans
+    GROUP BY bucket, has_gpu
     ORDER BY bucket, has_gpu
   `,
     [historicalCutoff, historicalStart]
